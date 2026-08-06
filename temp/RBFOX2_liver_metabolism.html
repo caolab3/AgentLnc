@@ -1,0 +1,294 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset='utf-8'>
+<title>RBP Evidence Check</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  body{display:flex;flex-direction:column;min-height:100vh}
+  header{background:linear-gradient(to right,#00274d,#5a9bd6);color:#fff;padding:20px;text-align:center;flex-shrink:0;}
+  main{flex:1;padding:24px;background:#f8f9fa}
+  footer{background:#00274d;color:#fff;text-align:center;padding:15px;flex-shrink:0}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  const ev={"labels": ["Molecular Mechanism Experiments", "Cellular Function Experiments", "Animal Function Experiments", "Bioinformatic Analysis"], "values": [2, 2, 3, 2], "colors": ["rgba(255,193,7,0.9)", "rgba(255,193,7,0.9)", "rgba(220,53,69,0.9)", "rgba(255,193,7,0.9)"]};
+  if(ev.labels.length){
+    new Chart(document.getElementById('evidenceChart'),{
+      type:'bar',
+      data:{labels:ev.labels,datasets:[{data:ev.values,backgroundColor:ev.colors}]},
+      options:{plugins:{legend:{display:false}},
+                scales:{y:{beginAtZero:true,ticks:{callback:v=>['None','Weak','Moderate','Strong'][v]??v}}}}
+    });
+  }
+  const ct={"labels": ["100+", "11\u201350"], "values": [1, 1]};
+  new Chart(document.getElementById('citChart'),{
+    type:'bar',
+    data:{labels:ct.labels,datasets:[{data:ct.values,backgroundColor:'rgba(54,162,235,0.8)'}]},
+    options:{plugins:{legend:{display:false}},
+              scales:{x:{title:{display:true,text:'Citation Num'}},
+                       y:{title:{display:true,text:'Num of papers'},beginAtZero:true}}}
+  });
+  const jr={"labels": ["Signal Transduction and Targeted Therapy", "Nature Metabolism"], "values": [1, 1]};
+  new Chart(document.getElementById('journalChart'),{
+    type:'pie',
+    data:{labels:jr.labels,
+           datasets:[{data:jr.values,
+                       backgroundColor:jr.labels.map((_,i)=>`hsl(${i*37},70%,60%)`)}]}
+  });
+});
+</script></head><body><header><h1>RBP Evidence Check</h1></header><main class='container-lg'><h2>Experimental evidence for <code>RBFOX2</code></h2><p class='text-muted'><strong>User query:</strong> liver metabolism</p><p class='fst-italic text-muted'>2026-07-20 13:43</p>
+<div class="row gy-3">
+  <div class="col-lg-6">
+    <div class="card h-100"><div class="card-body">
+      <h4 class="card-title mb-3">Evidence charts</h4>
+      <h6 class="fw-semibold">Evidence strength</h6>
+      <canvas id="evidenceChart" height="200" class="mb-4"></canvas>
+      <h6 class="fw-semibold">Citation histogram</h6>
+      <canvas id="citChart" height="180" class="mb-4"></canvas>
+      <h6 class="fw-semibold">Journal distribution</h6>
+      <canvas id="journalChart" height="220"></canvas>
+    </div></div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card h-100"><div class="card-body">
+      <h4 class="card-title mb-3">Evidence table</h4>
+      <div class='table-responsive'><table class='table table-sm align-middle'>
+        <thead class='table-light'><tr><th>Category</th><th>Evidence</th><th>Details</th></tr></thead><tbody>
+<tr><td>Molecular Mechanism Experiments</td><td><span class='badge bg-warning text-dark'>Moderate</span></td><td><ul class='mb-0'><li>PMID 36536133 showed that RBFOX2 promotes skipping of SCARB1 exon 12 and regulates alternative splicing of key lipid metabolism genes like PLA2G6 in mouse liver. eiCLIP profiling revealed RBFOX2-bound transcripts enriched in lipoprotein receptor and cholesterol metabolism functions. Dietary high-fat and high-fructose feeding decreased full-length active RBFOX2 expression, connecting metabolic state to its splicing activity.</li></ul></td></tr><tr><td>Cellular Function Experiments</td><td><span class='badge bg-warning text-dark'>Moderate</span></td><td><ul class='mb-0'><li>PMID 36536133 reported that RBFOX2 knockdown in iPSC-derived human hepatocytes increases cholesteryl esters and sphingomyelins and that RBFOX2-deficient mouse hepatocytes exhibit elevated lipid accumulation. Splice-switching of OSBPL9 exon 6 mimicked RBFOX2 deficiency effects by increasing ceramide, triglyceride, and phosphatidylcholine levels. These results underline RBFOX2’s role in controlling hepatocyte lipid composition.</li></ul></td></tr><tr><td>Animal Function Experiments</td><td><span class='badge bg-danger'>Strong</span></td><td><ul class='mb-0'><li>PMID 38302461 showed hepatocyte-specific RBFOX2 knockout mice have decreased blood cholesterol but increased hepatic cholesterol, bile acids, and other lipids. Multiple studies in PMID 36536133 confirmed that liver-specific RBFOX2 deletion reduces plasma cholesterol, alters liver lipid and bile acid profiles, and that RBFOX2 overexpression reverses these lipid changes including reduced hepatic and biliary cholesterol. Altogether, these animal models establish RBFOX2 as a critical regulator of systemic and hepatic lipid distribution.</li></ul></td></tr><tr><td>Bioinformatic Analysis</td><td><span class='badge bg-warning text-dark'>Moderate</span></td><td><ul class='mb-0'><li>PMID 36536133 found that RBFOX2 expression in mouse liver is transcriptionally regulated by feeding–fasting cycles. Bioinformatic mapping of mouse RBFOX2 targets revealed enrichment in human GWAS loci for lipid metabolism, LDL cholesterol, and triglycerides, linking RBFOX2 targets to human lipid phenotypes.</li></ul></td></tr></tbody></table></div><h6 class='mt-3'>Answer to user query</h6><p>Strong animal studies show that hepatocyte-specific RBFOX2 deletion lowers circulating cholesterol but causes hepatic accumulation of cholesterol, bile acids, and other lipids, whereas RBFOX2 overexpression reduces hepatic cholesterol and biliary cholesterol secretion, indicating RBFOX2 as a key regulator of liver lipid metabolism.</p></div></div></div></div><h4 class='mt-4 mb-3'>Articles</h4><ol><li><a href='#art1'>Alternative splicing and related RNA binding proteins in human health and disease</a></li><li><a href='#art2'>Liver RBFOX2 regulates cholesterol homeostasis via Scarb1 alternative splicing in mice</a></li></ol><div class='accordion' id='articleAccordion'>
+<div class='accordion-item'>
+  <h2 class='accordion-header' id='heading1'>
+    <button class='accordion-button collapsed' type='button' data-bs-toggle='collapse'
+            data-bs-target='#collapse1' aria-expanded='false' aria-controls='collapse1' id='art1'>
+      1. Alternative splicing and related RNA binding proteins in human health and disease
+      <span class='badge bg-success ms-2'>Has Evidence</span>
+    </button>
+  </h2>
+  <div id='collapse1' class='accordion-collapse collapse' aria-labelledby='heading1' data-bs-parent='#articleAccordion'>
+    <div class='accordion-body'>
+<p class='small text-muted'>Signal Transduction and Targeted Therapy (2024-02-02) · PMID 38302461 · Citations: 101 · <a href='https://pmc.ncbi.nlm.nih.gov/articles/PMC10835012/' target='_blank'>PMC link</a></p><details open class='mb-2'><summary class='fw-semibold'>Summary</summary><div class='ps-3'>Failed to generate summary due to an error.</div></details><details class='mb-2'><summary class='fw-semibold'>Conclusions</summary><ol class='ps-3'><li>Hepatocyte-specific knockout of RBFOX2 decreases blood cholesterol levels and increases hepatic cholesterol, bile acids, and other lipids, indicating RBFOX2’s pivotal role in liver lipid distribution.</li></ol></details><details class='mb-2'><summary class='fw-semibold'>Experiments</summary><div class='table-responsive'><table class='table table-bordered table-sm align-middle'><thead class='table-light'><tr><th>#</th><th>Model</th><th>Intervention</th><th>Readout</th><th>Result / Stats</th><th>Extra</th><th>Evidence Type</th><th>Conclusion</th></tr></thead><tbody><tr><td>1</td><td>Hepatocyte-specific RBFOX2 knockout mice</td><td>Genetic deletion of RBFOX2 in hepatocytes</td><td>Blood cholesterol levels; hepatic cholesterol, bile acid, and other lipid levels</td><td>Blood cholesterol decreased; hepatic cholesterol, bile acids, and other lipids increased</td><td>RBFOX2 regulates ASEs of key lipid‐related genes including Scarb1, Pla2g6, Sec31a, and Osbpl9</td><td>Animal Function Experiments</td><td>Hepatocyte-specific knockout of RBFOX2 decreases blood cholesterol levels and increases hepatic cholesterol, bile acids, and other lipids, indicating RBFOX2’s pivotal role in liver lipid distribution.</td></tr></tbody></table></div></details><p><a class='btn btn-sm btn-outline-secondary' data-bs-toggle='collapse' href='#raw1' aria-expanded='false' aria-controls='raw1'>Show raw text</a></p><div class='collapse' id='raw1'><pre class='p-3 bg-light border'>[PMC_URL]: https://pmc.ncbi.nlm.nih.gov/articles/PMC10835012/
+[CONCLUSIONS]:
+  - 1. Hepatocyte-specific knockout of RBFOX2 decreases blood cholesterol levels and increases hepatic cholesterol, bile acids, and other lipids, indicating RBFOX2’s pivotal role in liver lipid distribution.
+[EXPERIMENTAL_DETAILS]:
+  - 1. Conclusion: Hepatocyte-specific knockout of RBFOX2 decreases blood cholesterol levels and increases hepatic cholesterol, bile acids, and other lipids, indicating RBFOX2’s pivotal role in liver lipid distribution.
+      Model: Hepatocyte-specific RBFOX2 knockout mice
+      Intervention: Genetic deletion of RBFOX2 in hepatocytes
+      Readout: Blood cholesterol levels; hepatic cholesterol, bile acid, and other lipid levels
+      Result/Stats: Blood cholesterol decreased; hepatic cholesterol, bile acids, and other lipids increased
+      Extra Data: RBFOX2 regulates ASEs of key lipid‐related genes including Scarb1, Pla2g6, Sec31a, and Osbpl9
+      Evidence Type: Animal Function Experiments
+      Excerpt: hepatocyte-specific RBFOX2 gene knockout results in decreased blood cholesterol levels and increased levels of cholesterol, bile acids, and other lipids in the liver
+[SUMMARY]:
+  - The report compiles key experimental findings.</pre></div></div></div></div>
+<div class='accordion-item'>
+  <h2 class='accordion-header' id='heading2'>
+    <button class='accordion-button collapsed' type='button' data-bs-toggle='collapse'
+            data-bs-target='#collapse2' aria-expanded='false' aria-controls='collapse2' id='art2'>
+      2. Liver RBFOX2 regulates cholesterol homeostasis via Scarb1 alternative splicing in mice
+      <span class='badge bg-success ms-2'>Has Evidence</span>
+    </button>
+  </h2>
+  <div id='collapse2' class='accordion-collapse collapse' aria-labelledby='heading2' data-bs-parent='#articleAccordion'>
+    <div class='accordion-body'>
+<p class='small text-muted'>Nature Metabolism (2022-12-19) · PMID 36536133 · Citations: 19 · <a href='https://pmc.ncbi.nlm.nih.gov/articles/PMC9771820/' target='_blank'>PMC link</a></p><details open class='mb-2'><summary class='fw-semibold'>Summary</summary><div class='ps-3'>Failed to generate summary due to an error.</div></details><details class='mb-2'><summary class='fw-semibold'>Conclusions</summary><ol class='ps-3'><li>RBFOX2 is transcriptionally regulated by feeding and fasting cycles in the liver.</li><li>High-fat diet and high-fructose diet induced obesity are associated with decreased expression of the main RBFOX2 isoform in the liver.</li><li>Diet-induced obesity is associated with decreased levels of full-length active RBFOX2 in the liver.</li><li>In the liver, RBFOX2 cross-linked clusters are enriched in transcripts encoding proteins with phosphatidylcholine-sterol-O-acyltransferase activity, lipoprotein particle receptor binding, apolipoprotein receptor binding, and low-density lipoprotein particle receptor binding, suggesting a role for RBFOX2 in lipid metabolism.</li><li>Human orthologs of mouse RBFOX2 targets detected by eiCLIP are enriched in genes implicated by genome-wide association studies in human lipid metabolism phenotypes, LDL cholesterol levels, and triglycerides.</li><li>RBFOX2 promotes SCARB1 exon 12 skipping in mouse liver.</li><li>RBFOX2 regulates alternative splicing of PLA2G6 in mouse liver.</li><li>Liver-specific RBFOX2 knockout in male mice leads to a significant decrease in total cholesterol levels.</li><li>In high-fructose diet-fed mice, liver-specific RBFOX2 ablation increases hepatic lipid content, including cholesteryl esters, cholesterol, and sphingomyelins.</li><li>Liver-specific RBFOX2 knockout mice exhibit a shift in triglyceride composition favoring longer polyunsaturated fatty acid chains.</li><li>RBFOX2 deficiency in human hepatocytes maintains alternative splicing changes in SCARB1, SEC31A, OSBPL9, PLA2G6, and NUMB transcripts.</li><li>RBFOX2 silencing in human hepatocytes alters cellular lipid composition.</li><li>RBFOX2 deficiency in human hepatocytes increases expression of ABCA1, ABCG8, NR1H2, and NR1H3, indicating compensatory upregulation of cholesterol efflux pathways due to cholesterol accumulation.</li><li>High-fat diet-fed liver-specific RBFOX2 knockout mice show increased levels of specific intrahepatic bile acids.</li><li>Liver overexpression of RBFOX2 reduces hepatic cholesterol levels.</li><li>RBFOX2-deficient hepatocytes display increased lipid accumulation.</li><li>Expression of the short OSBPL9 isoform in wild-type hepatocytes increases levels of ceramide, triglyceride, phosphatidylcholine, and diacylglycerol species similar to those observed in RBFOX2-deficient hepatocytes, indicating a role in lipid metabolism.</li><li>In liver-specific RBFOX2 knockout mice, decreased cholesterol and phospholipid content in HDL is restored by reverting the SR-BI to SR-BII isoform ratio, confirming this splicing switch contributes to RBFOX2&#x27;s role in liver metabolism.</li><li>Liver inactivation of RBFOX2 increases biliary cholesterol secretion.</li><li>Transient overexpression of RBFOX2 reduces biliary cholesterol secretion.</li></ol></details><details class='mb-2'><summary class='fw-semibold'>Experiments</summary><div class='table-responsive'><table class='table table-bordered table-sm align-middle'><thead class='table-light'><tr><th>#</th><th>Model</th><th>Intervention</th><th>Readout</th><th>Result / Stats</th><th>Extra</th><th>Evidence Type</th><th>Conclusion</th></tr></thead><tbody><tr><td>1</td><td>Male C57BL6/J mice liver</td><td>Fed (ad libitum) vs fasted (16 h) state on control diet</td><td>RNA-sequencing quantification of RBFOX2 mRNA levels</td><td>Differential expression by RNA-seq, FDR cutoff &lt;0.05 (Extended Data Fig. 1a,b)</td><td>Volcano plot of splicing factor expression showing RBFOX2 regulation</td><td>Bioinformatic Analysis</td><td>RBFOX2 is transcriptionally regulated by feeding and fasting cycles in the liver.</td></tr><tr><td>2</td><td>Male C57BL6/J mice liver</td><td>Fed (ad libitum) vs fasted (16 h) state on control diet</td><td>TMT–MS proteomic quantification of RBFOX2 protein levels</td><td>n = 3 per condition, two-tailed unpaired t-test; significant change in RBFOX2 abundance</td><td>Analysis of spliceosome protein levels</td><td>Molecular Mechanism Experiments</td><td>RBFOX2 is transcriptionally regulated by feeding and fasting cycles in the liver.</td></tr><tr><td>3</td><td>C57BL6/J male mice liver</td><td>Control diet vs high-fat diet (HFD) or high-fructose diet (HFr)</td><td>Western blot of RBFOX2 isoforms, quantification of long/short variant ratio</td><td>n = 6 per condition; one-way ANOVA with Dunnett’s multiple comparisons; decreased main isoform ratio</td><td><a href='https://www.ncbi.nlm.nih.gov/core/lw/2.0/html/tileshop_pmc/tileshop_pmc_inline.html?title=Click%20on%20image%20to%20zoom&amp;p=PMC3&amp;id=9771820_42255_2022_681_Fig2_HTML.jpg' target='_blank' rel='noopener noreferrer'>Figure 2c</a></td><td>Molecular Mechanism Experiments</td><td>High-fat diet and high-fructose diet induced obesity are associated with decreased expression of the main RBFOX2 isoform in the liver.</td></tr><tr><td>4</td><td>C57BL6/J male mice liver</td><td>Control diet vs HFD or HFr diet</td><td>TMT–MS proteomic quantification of full-length RBFOX2</td><td>n = 3; two-tailed unpaired t-test; significant decrease under HFD and HFr</td><td><a href='https://www.ncbi.nlm.nih.gov/core/lw/2.0/html/tileshop_pmc/tileshop_pmc_inline.html?title=Click%20on%20image%20to%20zoom&amp;p=PMC3&amp;id=9771820_42255_2022_681_Fig2_HTML.jpg' target='_blank' rel='noopener noreferrer'>Figure 2d</a></td><td>Molecular Mechanism Experiments</td><td>High-fat diet and high-fructose diet induced obesity are associated with decreased expression of the main RBFOX2 isoform in the liver.</td></tr><tr><td>5</td><td>C57BL6/J male mice liver</td><td>Control diet vs HFD or HFr diet</td><td>TMT–MS proteomic quantification of full-length active RBFOX2</td><td>n = 3; two-tailed unpaired t-test; decreased full-length active RBFOX2 under obesogenic diets</td><td><a href='https://www.ncbi.nlm.nih.gov/core/lw/2.0/html/tileshop_pmc/tileshop_pmc_inline.html?title=Click%20on%20image%20to%20zoom&amp;p=PMC3&amp;id=9771820_42255_2022_681_Fig2_HTML.jpg' target='_blank' rel='noopener noreferrer'>Figure 2d</a></td><td>Molecular Mechanism Experiments</td><td>Diet-induced obesity is associated with decreased levels of full-length active RBFOX2 in the liver.</td></tr><tr><td>6</td><td>Mouse primary hepatocytes</td><td>Enhanced individual-nucleotide-resolution UV cross-linking and immunoprecipitation (eiCLIP) of RBFOX2</td><td>Gene Ontology molecular function enrichment analysis of RBFOX2-bound transcripts</td><td>Adjusted P values: phosphatidylcholine-sterol-O-acyltransferase activity P = 3.66×10−2; lipoprotein particle receptor binding P = 1.13×10−2; apolipoprotein receptor binding P = 2.61×10−3; LDL particle receptor binding P = 7.42×10−16</td><td><a href='https://www.ncbi.nlm.nih.gov/core/lw/2.0/html/tileshop_pmc/tileshop_pmc_inline.html?title=Click%20on%20image%20to%20zoom&amp;p=PMC3&amp;id=9771820_42255_2022_681_Fig3_HTML.jpg' target='_blank' rel='noopener noreferrer'>Figure 3d</a>, Supplementary Table 2</td><td>Molecular Mechanism Experiments</td><td>In the liver, RBFOX2 cross-linked clusters are enriched in transcripts encoding proteins with phosphatidylcholine-sterol-O-acyltransferase activity, lipoprotein particle receptor binding, apolipoprotein receptor binding, and low-density lipoprotein particle receptor binding, suggesting a role for RBFOX2 in lipid metabolism.</td></tr><tr><td>7</td><td>Bioinformatic mapping of mouse RBFOX2 targets to human orthologs</td><td>Analysis of GWAS gene sets</td><td>Enrichment analysis for human lipid metabolism, LDL-cholesterol and triglyceride GWAS associations</td><td>Significant enrichment in all three categories (Fig. 3e)</td><td><a href='https://www.ncbi.nlm.nih.gov/core/lw/2.0/html/tileshop_pmc/tileshop_pmc_inline.html?title=Click%20on%20image%20to%20zoom&amp;p=PMC3&amp;id=9771820_42255_2022_681_Fig3_HTML.jpg' target='_blank' rel='noopener noreferrer'>Figure 3e</a></td><td>Bioinformatic Analysis</td><td>Human orthologs of mouse RBFOX2 targets detected by eiCLIP are enriched in genes implicated by genome-wide association studies in human lipid metabolism phenotypes, LDL cholesterol levels, and triglycerides.</td></tr><tr><td>8</td><td>Alb_cre− Rbfox2 LoxP/LoxP (L WT) and Alb_cre+ Rbfox2 LoxP/LoxP (L Δ Rbfox2) male mice</td><td>Liver-specific knockout of RBFOX2</td><td>Semiquantitative PCR and capillary electrophoresis analysis of Scarb1 exon 12 inclusion (PSI)</td><td>n = 6–8; two-tailed unpaired t-test; significant reduction in skipping in L Δ Rbfox2</td><td><a href='https://www.ncbi.nlm.nih.gov/core/lw/2.0/html/tileshop_pmc/tileshop_pmc_inline.html?title=Click%20on%20image%20to%20zoom&amp;p=PMC3&amp;id=9771820_42255_2022_681_Fig3_HTML.jpg' target='_blank' rel='noopener noreferrer'>Figure 3f</a>, RBFOX2 eiCLIP peak upstream of exon 12</td><td>Molecular Mechanism Experiments</td><td>RBFOX2 promotes SCARB1 exon 12 skipping in mouse liver.</td></tr><tr><td>9</td><td>L WT and L Δ Rbfox2 male mice</td><td>Liver-specific knockout of RBFOX2</td><td>Semiquantitative PCR and capillary electrophoresis analysis of Pla2g6 exon 10 inclusion (PSI)</td><td>n = 6–8; two-tailed unpaired t-test; significant change in exon 10 splicing</td><td><a href='https://www.ncbi.nlm.nih.gov/core/lw/2.0/html/tileshop_pmc/tileshop_pmc_inline.html?title=Click%20on%20image%20to%20zoom&amp;p=PMC3&amp;id=9771820_42255_2022_681_Fig3_HTML.jpg' target='_blank' rel='noopener noreferrer'>Figure 3g</a></td><td>Molecular Mechanism Experiments</td><td>RBFOX2 regulates alternative splicing of PLA2G6 in mouse liver.</td></tr><tr><td>10</td><td>L WT and L Δ Rbfox2 male mice fed control diet or high-fructose diet</td><td>Hepatocyte-specific deletion of Rbfox2</td><td>Plasma total cholesterol measurement</td><td>n = 8–9 (CD), n = 18–19 (HFr); two-way ANOVA with Sidak’s multiple comparisons; significant decrease under HFr</td><td><a href='https://www.ncbi.nlm.nih.gov/core/lw/2.0/html/tileshop_pmc/tileshop_pmc_inline.html?title=Click%20on%20image%20to%20zoom&amp;p=PMC3&amp;id=9771820_42255_2022_681_Fig11_ESM.jpg' target='_blank' rel='noopener noreferrer'>Figure 4a</a></td><td>Animal Function Experiments</td><td>Liver-specific RBFOX2 knockout in male mice leads to a significant decrease in total cholesterol levels.</td></tr><tr><td>11</td><td>L WT and L Δ Rbfox2 male mice fed high-fructose diet</td><td>Hepatocyte-specific Rbfox2 knockout</td><td>Untargeted LC–MS lipidomics of liver tissue</td><td>n = 7–8; two-tailed unpaired t-test; increased cholesteryl esters, cholesterol and sphingomyelins</td><td><a href='https://www.ncbi.nlm.nih.gov/core/lw/2.0/html/tileshop_pmc/tileshop_pmc_inline.html?title=Click%20on%20image%20to%20zoom&amp;p=PMC3&amp;id=9771820_42255_2022_681_Fig11_ESM.jpg' target='_blank' rel='noopener noreferrer'>Figure 4d</a></td><td>Animal Function Experiments</td><td>In high-fructose diet-fed mice, liver-specific RBFOX2 ablation increases hepatic lipid content, including cholesteryl esters, cholesterol, and sphingomyelins.</td></tr><tr><td>12</td><td>L WT and L Δ Rbfox2 male mice fed high-fructose diet</td><td>Hepatocyte-specific Rbfox2 knockout</td><td>LC–MS lipidomics: PUFA/non-PUFA TG ratio</td><td>n = 7–8; two-tailed unpaired t-test; increased PUFA/non-PUFA TG ratio in L Δ Rbfox2</td><td><a href='https://www.ncbi.nlm.nih.gov/core/lw/2.0/html/tileshop_pmc/tileshop_pmc_inline.html?title=Click%20on%20image%20to%20zoom&amp;p=PMC3&amp;id=9771820_42255_2022_681_Fig11_ESM.jpg' target='_blank' rel='noopener noreferrer'>Figure 4d</a></td><td>Animal Function Experiments</td><td>Liver-specific RBFOX2 knockout mice exhibit a shift in triglyceride composition favoring longer polyunsaturated fatty acid chains.</td></tr><tr><td>13</td><td>iPSC-derived human hepatocytes</td><td>RBFOX2 knockdown by RNAi</td><td>RT–qPCR and semiquantitative PCR with capillary electrophoresis measuring PSI of exons</td><td>n = 4–6 per transcript; two-tailed unpaired t-test; significant AS changes in all five targets</td><td><a href='https://www.ncbi.nlm.nih.gov/core/lw/2.0/html/tileshop_pmc/tileshop_pmc_inline.html?title=Click%20on%20image%20to%20zoom&amp;p=PMC3&amp;id=9771820_42255_2022_681_Fig11_ESM.jpg' target='_blank' rel='noopener noreferrer'>Figure 4g–k</a></td><td>Molecular Mechanism Experiments</td><td>RBFOX2 deficiency in human hepatocytes maintains alternative splicing changes in SCARB1, SEC31A, OSBPL9, PLA2G6, and NUMB transcripts.</td></tr><tr><td>14</td><td>iPSC-derived human hepatocytes</td><td>RBFOX2 knockdown by RNAi</td><td>LC–MS lipidomic analysis: cholesteryl ester and sphingomyelin levels</td><td>n = 5; two-tailed unpaired t-test; increased cholesteryl esters and sphingomyelins</td><td><a href='https://www.ncbi.nlm.nih.gov/core/lw/2.0/html/tileshop_pmc/tileshop_pmc_inline.html?title=Click%20on%20image%20to%20zoom&amp;p=PMC3&amp;id=9771820_42255_2022_681_Fig11_ESM.jpg' target='_blank' rel='noopener noreferrer'>Figure 4l</a>, m, <a href='https://www.ncbi.nlm.nih.gov/core/lw/2.0/html/tileshop_pmc/tileshop_pmc_inline.html?title=Click%20on%20image%20to%20zoom&amp;p=PMC3&amp;id=9771820_42255_2022_681_Fig12_ESM.jpg' target='_blank' rel='noopener noreferrer'>Extended Data Fig. 5b</a></td><td>Cellular Function Experiments</td><td>RBFOX2 silencing in human hepatocytes alters cellular lipid composition.</td></tr><tr><td>15</td><td></td><td></td><td></td><td></td><td></td><td>No Supporting Experiment</td><td>RBFOX2 deficiency in human hepatocytes increases expression of ABCA1, ABCG8, NR1H2, and NR1H3, indicating compensatory upregulation of cholesterol efflux pathways due to cholesterol accumulation.</td></tr><tr><td>16</td><td>L WT and L Δ Rbfox2 male mice fed high-fat diet</td><td>Hepatocyte-specific RBFOX2 knockout under HFD</td><td>LC–MS/MS quantification of intrahepatic bile acids (taurocholic, taurodeoxycholic, tauroursodeoxycholic, cholic acids)</td><td>n = 8; two-tailed unpaired t-test; increased levels in L Δ Rbfox2</td><td><a href='https://www.ncbi.nlm.nih.gov/core/lw/2.0/html/tileshop_pmc/tileshop_pmc_inline.html?title=Click%20on%20image%20to%20zoom&amp;p=PMC3&amp;id=9771820_42255_2022_681_Fig12_ESM.jpg' target='_blank' rel='noopener noreferrer'>Extended Data Fig. 5l–u</a></td><td>Animal Function Experiments</td><td>High-fat diet-fed liver-specific RBFOX2 knockout mice show increased levels of specific intrahepatic bile acids.</td></tr><tr><td>17</td><td>C57BL6/J male mice fed high-fructose diet</td><td>Adenoviral overexpression of RBFOX2 WT vs GFP control</td><td>LC–MS lipidomic analysis of liver: free cholesterol and cholesteryl esters</td><td>n = 8–9; two-tailed unpaired t-test; decreased cholesterol and cholesteryl esters with RBFOX2 overexpression</td><td><a href='https://www.ncbi.nlm.nih.gov/core/lw/2.0/html/tileshop_pmc/tileshop_pmc_inline.html?title=Click%20on%20image%20to%20zoom&amp;p=PMC3&amp;id=9771820_42255_2022_681_Fig12_ESM.jpg' target='_blank' rel='noopener noreferrer'>Figure 5f</a></td><td>Animal Function Experiments</td><td>Liver overexpression of RBFOX2 reduces hepatic cholesterol levels.</td></tr><tr><td>18</td><td>Primary mouse hepatocytes from L WT and L Δ Rbfox2 mice</td><td>Genetic knockout of RBFOX2</td><td>LC–MS metabolomic profiling of hepatocyte lipid content</td><td>n = 5–6; volcano plot showing multiple lipid species increased (Extended Data Fig. 6i)</td><td><a href='https://www.ncbi.nlm.nih.gov/core/lw/2.0/html/tileshop_pmc/tileshop_pmc_inline.html?title=Click%20on%20image%20to%20zoom&amp;p=PMC3&amp;id=9771820_42255_2022_681_Fig13_ESM.jpg' target='_blank' rel='noopener noreferrer'>Extended Data Fig. 6i</a></td><td>Cellular Function Experiments</td><td>RBFOX2-deficient hepatocytes display increased lipid accumulation.</td></tr><tr><td>19</td><td>Primary mouse hepatocytes</td><td>Treatment with splice-switching oligonucleotide SSO11.1 to promote skipping of Osbpl9 exon 6</td><td>LC–MS lipidomic analysis of Cer(40:2), TG, PC, DG species</td><td>n = 5–6; two-tailed unpaired t-test; significant increase in lipid species (Extended Data Fig. 8a,b)</td><td><a href='https://www.ncbi.nlm.nih.gov/core/lw/2.0/html/tileshop_pmc/tileshop_pmc_inline.html?title=Click%20on%20image%20to%20zoom&amp;p=PMC3&amp;id=9771820_42255_2022_681_Fig15_ESM.jpg' target='_blank' rel='noopener noreferrer'>Extended Data Fig. 8a</a>, b</td><td>Cellular Function Experiments</td><td>Expression of the short OSBPL9 isoform in wild-type hepatocytes increases levels of ceramide, triglyceride, phosphatidylcholine, and diacylglycerol species similar to those observed in RBFOX2-deficient hepatocytes, indicating a role in lipid metabolism.</td></tr><tr><td>20</td><td>L WT and L Δ Rbfox2 male mice fed high-fructose diet</td><td>Subcutaneous injection of SSO8.3 vs scrambled control to promote SR-BII isoform</td><td>Lipid composition analysis of purified HDL: cholesterol and phospholipids</td><td>n = 7–10; one-way ANOVA with Dunnett’s test; differences abolished by SSO8.3</td><td><a href='https://www.ncbi.nlm.nih.gov/core/lw/2.0/html/tileshop_pmc/tileshop_pmc_inline.html?title=Click%20on%20image%20to%20zoom&amp;p=PMC3&amp;id=9771820_42255_2022_681_Fig14_ESM.jpg' target='_blank' rel='noopener noreferrer'>Figure 7k</a></td><td>Animal Function Experiments</td><td>In liver-specific RBFOX2 knockout mice, decreased cholesterol and phospholipid content in HDL is restored by reverting the SR-BI to SR-BII isoform ratio, confirming this splicing switch contributes to RBFOX2&#x27;s role in liver metabolism.</td></tr><tr><td>21</td><td>L WT and L Δ Rbfox2 male mice fed high-fructose diet</td><td>Hepatocyte-specific RBFOX2 knockout, scramble SSO treatment</td><td>LC–MS quantification of bile cholesterol</td><td>n = 7–10; one-way ANOVA with Dunnett’s test; increased biliary cholesterol in L Δ Rbfox2 (Scr)</td><td><a href='https://www.ncbi.nlm.nih.gov/core/lw/2.0/html/tileshop_pmc/tileshop_pmc_inline.html?title=Click%20on%20image%20to%20zoom&amp;p=PMC3&amp;id=9771820_42255_2022_681_Fig14_ESM.jpg' target='_blank' rel='noopener noreferrer'>Figure 7l</a></td><td>Animal Function Experiments</td><td>Liver inactivation of RBFOX2 increases biliary cholesterol secretion.</td></tr><tr><td>22</td><td>C57BL6/J male mice fed high-fructose diet</td><td>Adenoviral overexpression of RBFOX2 WT vs GFP control</td><td>LC–MS quantification of bile cholesterol</td><td>n = 8–9; two-tailed unpaired t-test; decreased biliary cholesterol with RBFOX2 overexpression</td><td><a href='https://www.ncbi.nlm.nih.gov/core/lw/2.0/html/tileshop_pmc/tileshop_pmc_inline.html?title=Click%20on%20image%20to%20zoom&amp;p=PMC3&amp;id=9771820_42255_2022_681_Fig12_ESM.jpg' target='_blank' rel='noopener noreferrer'>Figure 5g</a></td><td>Animal Function Experiments</td><td>Transient overexpression of RBFOX2 reduces biliary cholesterol secretion.</td></tr></tbody></table></div></details><p><a class='btn btn-sm btn-outline-secondary' data-bs-toggle='collapse' href='#raw2' aria-expanded='false' aria-controls='raw2'>Show raw text</a></p><div class='collapse' id='raw2'><pre class='p-3 bg-light border'>[PMC_URL]: https://pmc.ncbi.nlm.nih.gov/articles/PMC9771820/
+[CONCLUSIONS]:
+  - 1. RBFOX2 is transcriptionally regulated by feeding and fasting cycles in the liver.
+  - 2. High-fat diet and high-fructose diet induced obesity are associated with decreased expression of the main RBFOX2 isoform in the liver.
+  - 3. Diet-induced obesity is associated with decreased levels of full-length active RBFOX2 in the liver.
+  - 4. In the liver, RBFOX2 cross-linked clusters are enriched in transcripts encoding proteins with phosphatidylcholine-sterol-O-acyltransferase activity, lipoprotein particle receptor binding, apolipoprotein receptor binding, and low-density lipoprotein particle receptor binding, suggesting a role for RBFOX2 in lipid metabolism.
+  - 5. Human orthologs of mouse RBFOX2 targets detected by eiCLIP are enriched in genes implicated by genome-wide association studies in human lipid metabolism phenotypes, LDL cholesterol levels, and triglycerides.
+  - 6. RBFOX2 promotes SCARB1 exon 12 skipping in mouse liver.
+  - 7. RBFOX2 regulates alternative splicing of PLA2G6 in mouse liver.
+  - 8. Liver-specific RBFOX2 knockout in male mice leads to a significant decrease in total cholesterol levels.
+  - 9. In high-fructose diet-fed mice, liver-specific RBFOX2 ablation increases hepatic lipid content, including cholesteryl esters, cholesterol, and sphingomyelins.
+  - 10. Liver-specific RBFOX2 knockout mice exhibit a shift in triglyceride composition favoring longer polyunsaturated fatty acid chains.
+  - 11. RBFOX2 deficiency in human hepatocytes maintains alternative splicing changes in SCARB1, SEC31A, OSBPL9, PLA2G6, and NUMB transcripts.
+  - 12. RBFOX2 silencing in human hepatocytes alters cellular lipid composition.
+  - 13. RBFOX2 deficiency in human hepatocytes increases expression of ABCA1, ABCG8, NR1H2, and NR1H3, indicating compensatory upregulation of cholesterol efflux pathways due to cholesterol accumulation.
+  - 14. High-fat diet-fed liver-specific RBFOX2 knockout mice show increased levels of specific intrahepatic bile acids.
+  - 15. Liver overexpression of RBFOX2 reduces hepatic cholesterol levels.
+  - 16. RBFOX2-deficient hepatocytes display increased lipid accumulation.
+  - 17. Expression of the short OSBPL9 isoform in wild-type hepatocytes increases levels of ceramide, triglyceride, phosphatidylcholine, and diacylglycerol species similar to those observed in RBFOX2-deficient hepatocytes, indicating a role in lipid metabolism.
+  - 18. In liver-specific RBFOX2 knockout mice, decreased cholesterol and phospholipid content in HDL is restored by reverting the SR-BI to SR-BII isoform ratio, confirming this splicing switch contributes to RBFOX2&#x27;s role in liver metabolism.
+  - 19. Liver inactivation of RBFOX2 increases biliary cholesterol secretion.
+  - 20. Transient overexpression of RBFOX2 reduces biliary cholesterol secretion.
+[EXPERIMENTAL_DETAILS]:
+  - 1. Conclusion: RBFOX2 is transcriptionally regulated by feeding and fasting cycles in the liver.
+      Model: Male C57BL6/J mice liver
+      Intervention: Fed (ad libitum) vs fasted (16 h) state on control diet
+      Readout: RNA-sequencing quantification of RBFOX2 mRNA levels
+      Result/Stats: Differential expression by RNA-seq, FDR cutoff &lt;0.05 (Extended Data Fig. 1a,b)
+      Extra Data: Volcano plot of splicing factor expression showing RBFOX2 regulation
+      Evidence Type: Bioinformatic Analysis
+      Excerpt: Rbfox2 is regulated at the transcriptional level by feeding and fasting cycles in the liver (Extended Data Fig. 1a,b).
+  - 2. Conclusion: RBFOX2 is transcriptionally regulated by feeding and fasting cycles in the liver.
+      Model: Male C57BL6/J mice liver
+      Intervention: Fed (ad libitum) vs fasted (16 h) state on control diet
+      Readout: TMT–MS proteomic quantification of RBFOX2 protein levels
+      Result/Stats: n = 3 per condition, two-tailed unpaired t-test; significant change in RBFOX2 abundance
+      Extra Data: Analysis of spliceosome protein levels
+      Evidence Type: Molecular Mechanism Experiments
+      Excerpt: Gene ontology analysis showed that feeding and fasting cycles specifically modify the expression of ‘spliceosome’ proteins... indicating a potential modulation of RBFOX2 function (Extended Data Fig. 1a,b).
+  - 3. Conclusion: High-fat diet and high-fructose diet induced obesity are associated with decreased expression of the main RBFOX2 isoform in the liver.
+      Model: C57BL6/J male mice liver
+      Intervention: Control diet vs high-fat diet (HFD) or high-fructose diet (HFr)
+      Readout: Western blot of RBFOX2 isoforms, quantification of long/short variant ratio
+      Result/Stats: n = 6 per condition; one-way ANOVA with Dunnett’s multiple comparisons; decreased main isoform ratio
+      Extra Data: Figure 2c
+      Evidence Type: Molecular Mechanism Experiments
+      Excerpt: Western blot analysis showed that both HFD- and HFr-diet-induced obesity are associated with decreased expression of the main RBFOX2 isoform in the liver (Fig. 2c).
+  - 4. Conclusion: High-fat diet and high-fructose diet induced obesity are associated with decreased expression of the main RBFOX2 isoform in the liver.
+      Model: C57BL6/J male mice liver
+      Intervention: Control diet vs HFD or HFr diet
+      Readout: TMT–MS proteomic quantification of full-length RBFOX2
+      Result/Stats: n = 3; two-tailed unpaired t-test; significant decrease under HFD and HFr
+      Extra Data: Figure 2d
+      Evidence Type: Molecular Mechanism Experiments
+      Excerpt: TMT–MS proteomic analysis shows that these changes are associated with decreased levels of full-length active RBFOX2 (Fig. 2d).
+  - 5. Conclusion: Diet-induced obesity is associated with decreased levels of full-length active RBFOX2 in the liver.
+      Model: C57BL6/J male mice liver
+      Intervention: Control diet vs HFD or HFr diet
+      Readout: TMT–MS proteomic quantification of full-length active RBFOX2
+      Result/Stats: n = 3; two-tailed unpaired t-test; decreased full-length active RBFOX2 under obesogenic diets
+      Extra Data: Figure 2d
+      Evidence Type: Molecular Mechanism Experiments
+      Excerpt: TMT–MS proteomic analysis shows that these changes are associated with decreased levels of full-length active RBFOX2 (Fig. 2d).
+  - 6. Conclusion: In the liver, RBFOX2 cross-linked clusters are enriched in transcripts encoding proteins with phosphatidylcholine-sterol-O-acyltransferase activity, lipoprotein particle receptor binding, apolipoprotein receptor binding, and low-density lipoprotein particle receptor binding, suggesting a role for RBFOX2 in lipid metabolism.
+      Model: Mouse primary hepatocytes
+      Intervention: Enhanced individual-nucleotide-resolution UV cross-linking and immunoprecipitation (eiCLIP) of RBFOX2
+      Readout: Gene Ontology molecular function enrichment analysis of RBFOX2-bound transcripts
+      Result/Stats: Adjusted P values: phosphatidylcholine-sterol-O-acyltransferase activity P = 3.66×10−2; lipoprotein particle receptor binding P = 1.13×10−2; apolipoprotein receptor binding P = 2.61×10−3; LDL particle receptor binding P = 7.42×10−16
+      Extra Data: Figure 3d; Supplementary Table 2
+      Evidence Type: Molecular Mechanism Experiments
+      Excerpt: Gene ontology analysis showed that RBFOX2 cross-linked clusters are highly enriched in transcripts encoding for proteins involved in phosphatidylcholine-sterol-O-acyltransferase activity (adjusted P = 3.66 × 10^−2), lipoprotein particle receptor binding (adjusted P = 1.13 × 10^−2), apolipoprotein receptor binding (adjusted P = 2.61 × 10^−3) and low-density lipoprotein (LDL) particle receptor binding, suggesting a role for RBFOX2 in controlling lipid metabolism (Fig. 3d).
+  - 7. Conclusion: Human orthologs of mouse RBFOX2 targets detected by eiCLIP are enriched in genes implicated by genome-wide association studies in human lipid metabolism phenotypes, LDL cholesterol levels, and triglycerides.
+      Model: Bioinformatic mapping of mouse RBFOX2 targets to human orthologs
+      Intervention: Analysis of GWAS gene sets
+      Readout: Enrichment analysis for human lipid metabolism, LDL-cholesterol and triglyceride GWAS associations
+      Result/Stats: Significant enrichment in all three categories (Fig. 3e)
+      Extra Data: Figure 3e
+      Evidence Type: Bioinformatic Analysis
+      Excerpt: The human orthologous genes of the mouse RBFOX2 targets detected by eiCLIP are enriched in genes implicated by genome-wide association study in human lipid metabolism phenotypes, LDL cholesterol levels or triglycerides (Fig. 3e).
+  - 8. Conclusion: RBFOX2 promotes SCARB1 exon 12 skipping in mouse liver.
+      Model: Alb_cre− Rbfox2 LoxP/LoxP (L WT) and Alb_cre+ Rbfox2 LoxP/LoxP (L Δ Rbfox2) male mice
+      Intervention: Liver-specific knockout of RBFOX2
+      Readout: Semiquantitative PCR and capillary electrophoresis analysis of Scarb1 exon 12 inclusion (PSI)
+      Result/Stats: n = 6–8; two-tailed unpaired t-test; significant reduction in skipping in L Δ Rbfox2
+      Extra Data: Figure 3f; RBFOX2 eiCLIP peak upstream of exon 12
+      Evidence Type: Molecular Mechanism Experiments
+      Excerpt: PCR analysis of the livers of L Δ Rbfox2 mice confirmed that RBFOX2 promotes Scarb1 exon 12 skipping (Fig. 3f).
+  - 9. Conclusion: RBFOX2 regulates alternative splicing of PLA2G6 in mouse liver.
+      Model: L WT and L Δ Rbfox2 male mice
+      Intervention: Liver-specific knockout of RBFOX2
+      Readout: Semiquantitative PCR and capillary electrophoresis analysis of Pla2g6 exon 10 inclusion (PSI)
+      Result/Stats: n = 6–8; two-tailed unpaired t-test; significant change in exon 10 splicing
+      Extra Data: Figure 3g
+      Evidence Type: Molecular Mechanism Experiments
+      Excerpt: RBFOX2 also promotes skipping or inclusion of specific exons in Pla2g6 (Fig. 3g).
+  - 10. Conclusion: Liver-specific RBFOX2 knockout in male mice leads to a significant decrease in total cholesterol levels.
+      Model: L WT and L Δ Rbfox2 male mice fed control diet or high-fructose diet
+      Intervention: Hepatocyte-specific deletion of Rbfox2
+      Readout: Plasma total cholesterol measurement
+      Result/Stats: n = 8–9 (CD), n = 18–19 (HFr); two-way ANOVA with Sidak’s multiple comparisons; significant decrease under HFr
+      Extra Data: Figure 4a
+      Evidence Type: Animal Function Experiments
+      Excerpt: Blood lipid profile analysis revealed that L Δ Rbfox2 male mice showed a significant decrease in total cholesterol (Fig. 4a) but not in TGs, when consuming a HFr diet.
+  - 11. Conclusion: In high-fructose diet-fed mice, liver-specific RBFOX2 ablation increases hepatic lipid content, including cholesteryl esters, cholesterol, and sphingomyelins.
+      Model: L WT and L Δ Rbfox2 male mice fed high-fructose diet
+      Intervention: Hepatocyte-specific Rbfox2 knockout
+      Readout: Untargeted LC–MS lipidomics of liver tissue
+      Result/Stats: n = 7–8; two-tailed unpaired t-test; increased cholesteryl esters, cholesterol and sphingomyelins
+      Extra Data: Figure 4d
+      Evidence Type: Animal Function Experiments
+      Excerpt: In mice fed a HFr diet, ablation of RBFOX2 was associated with an increase in hepatic lipid content, particularly cholesteryl esters, cholesterol and sphingomyelins (Fig. 4d).
+  - 12. Conclusion: Liver-specific RBFOX2 knockout mice exhibit a shift in triglyceride composition favoring longer polyunsaturated fatty acid chains.
+      Model: L WT and L Δ Rbfox2 male mice fed high-fructose diet
+      Intervention: Hepatocyte-specific Rbfox2 knockout
+      Readout: LC–MS lipidomics: PUFA/non-PUFA TG ratio
+      Result/Stats: n = 7–8; two-tailed unpaired t-test; increased PUFA/non-PUFA TG ratio in L Δ Rbfox2
+      Extra Data: Figure 4d
+      Evidence Type: Animal Function Experiments
+      Excerpt: We noted a change in TG composition favouring longer polyunsaturated fatty acyl (PUFA) chains (PUFA/non-PUFA TG ratio) in L Δ Rbfox2 mice (Fig. 4d).
+  - 13. Conclusion: RBFOX2 deficiency in human hepatocytes maintains alternative splicing changes in SCARB1, SEC31A, OSBPL9, PLA2G6, and NUMB transcripts.
+      Model: iPSC-derived human hepatocytes
+      Intervention: RBFOX2 knockdown by RNAi
+      Readout: RT–qPCR and semiquantitative PCR with capillary electrophoresis measuring PSI of exons
+      Result/Stats: n = 4–6 per transcript; two-tailed unpaired t-test; significant AS changes in all five targets
+      Extra Data: Figure 4g–k
+      Evidence Type: Molecular Mechanism Experiments
+      Excerpt: Consistent with human RBFOX2 binding to pre-mRNA, the effect of RBFOX2 deficiency in AS of SCARB1, SEC31A, OSBPL9, PLA2G6 and NUMB is maintained in human hepatocytes (Fig. 4g–k).
+  - 14. Conclusion: RBFOX2 silencing in human hepatocytes alters cellular lipid composition.
+      Model: iPSC-derived human hepatocytes
+      Intervention: RBFOX2 knockdown by RNAi
+      Readout: LC–MS lipidomic analysis: cholesteryl ester and sphingomyelin levels
+      Result/Stats: n = 5; two-tailed unpaired t-test; increased cholesteryl esters and sphingomyelins
+      Extra Data: Figure 4l,m; Extended Data Fig. 5b
+      Evidence Type: Cellular Function Experiments
+      Excerpt: Lipidomic analysis of human hepatocytes showed that RBFOX2 silencing promotes changes in lipid composition ... including cholesteryl esters and sphingomyelins accumulation (Fig. 4l,m).
+  - 15. Conclusion: RBFOX2 deficiency in human hepatocytes increases expression of ABCA1, ABCG8, NR1H2, and NR1H3, indicating compensatory upregulation of cholesterol efflux pathways due to cholesterol accumulation.
+      Model: 
+      Intervention: 
+      Readout: 
+      Result/Stats: 
+      Extra Data: 
+      Evidence Type: No Supporting Experiment
+      Excerpt: 
+  - 16. Conclusion: High-fat diet-fed liver-specific RBFOX2 knockout mice show increased levels of specific intrahepatic bile acids.
+      Model: L WT and L Δ Rbfox2 male mice fed high-fat diet
+      Intervention: Hepatocyte-specific RBFOX2 knockout under HFD
+      Readout: LC–MS/MS quantification of intrahepatic bile acids (taurocholic, taurodeoxycholic, tauroursodeoxycholic, cholic acids)
+      Result/Stats: n = 8; two-tailed unpaired t-test; increased levels in L Δ Rbfox2
+      Extra Data: Extended Data Fig. 5l–u
+      Evidence Type: Animal Function Experiments
+      Excerpt: When fed a HFD, L Δ Rbfox2 mice also showed an increase in specific intrahepatic bile acids, compared to L WT control mice (Extended Data Fig. 5l–u).
+  - 17. Conclusion: Liver overexpression of RBFOX2 reduces hepatic cholesterol levels.
+      Model: C57BL6/J male mice fed high-fructose diet
+      Intervention: Adenoviral overexpression of RBFOX2 WT vs GFP control
+      Readout: LC–MS lipidomic analysis of liver: free cholesterol and cholesteryl esters
+      Result/Stats: n = 8–9; two-tailed unpaired t-test; decreased cholesterol and cholesteryl esters with RBFOX2 overexpression
+      Extra Data: Figure 5f
+      Evidence Type: Animal Function Experiments
+      Excerpt: LC–MS lipidomic analysis showed that RBFOX2 over-expression is associated with a decrease in cholesterol in the liver (Fig. 5f).
+  - 18. Conclusion: RBFOX2-deficient hepatocytes display increased lipid accumulation.
+      Model: Primary mouse hepatocytes from L WT and L Δ Rbfox2 mice
+      Intervention: Genetic knockout of RBFOX2
+      Readout: LC–MS metabolomic profiling of hepatocyte lipid content
+      Result/Stats: n = 5–6; volcano plot showing multiple lipid species increased (Extended Data Fig. 6i)
+      Extra Data: Extended Data Fig. 6i
+      Evidence Type: Cellular Function Experiments
+      Excerpt: LC–MS metabolomics revealed that RBFOX2-deficient hepatocytes have increased lipid accumulation (Extended Data Fig. 6i).
+  - 19. Conclusion: Expression of the short OSBPL9 isoform in wild-type hepatocytes increases levels of ceramide, triglyceride, phosphatidylcholine, and diacylglycerol species similar to those observed in RBFOX2-deficient hepatocytes, indicating a role in lipid metabolism.
+      Model: Primary mouse hepatocytes
+      Intervention: Treatment with splice-switching oligonucleotide SSO11.1 to promote skipping of Osbpl9 exon 6
+      Readout: LC–MS lipidomic analysis of Cer(40:2), TG, PC, DG species
+      Result/Stats: n = 5–6; two-tailed unpaired t-test; significant increase in lipid species (Extended Data Fig. 8a,b)
+      Extra Data: Extended Data Fig. 8a,b
+      Evidence Type: Cellular Function Experiments
+      Excerpt: Expression of the short Osbpl9 isoform (skipping of exon 6) in wild type cells promoted an increase in species such as Cer (40:2), TG (50:1), TG (51:1), PC (32:0), PC (34:0) and DG (38:4) resembling RBFOX2-deficient hepatocytes (Extended Data Fig. 8a,b).
+  - 20. Conclusion: In liver-specific RBFOX2 knockout mice, decreased cholesterol and phospholipid content in HDL is restored by reverting the SR-BI to SR-BII isoform ratio, confirming this splicing switch contributes to RBFOX2&#x27;s role in liver metabolism.
+      Model: L WT and L Δ Rbfox2 male mice fed high-fructose diet
+      Intervention: Subcutaneous injection of SSO8.3 vs scrambled control to promote SR-BII isoform
+      Readout: Lipid composition analysis of purified HDL: cholesterol and phospholipids
+      Result/Stats: n = 7–10; one-way ANOVA with Dunnett’s test; differences abolished by SSO8.3
+      Extra Data: Figure 7k
+      Evidence Type: Animal Function Experiments
+      Excerpt: Cholesterol and phospholipid content in HDL was decreased in L Δ Rbfox2 mice and these differences were abolished by reverting the SR-BI to SR-BII ratio (Fig. 7k).
+  - 21. Conclusion: Liver inactivation of RBFOX2 increases biliary cholesterol secretion.
+      Model: L WT and L Δ Rbfox2 male mice fed high-fructose diet
+      Intervention: Hepatocyte-specific RBFOX2 knockout, scramble SSO treatment
+      Readout: LC–MS quantification of bile cholesterol
+      Result/Stats: n = 7–10; one-way ANOVA with Dunnett’s test; increased biliary cholesterol in L Δ Rbfox2 (Scr)
+      Extra Data: Figure 7l
+      Evidence Type: Animal Function Experiments
+      Excerpt: Cholesterol in the bile was increased on RBFOX2 inactivation in the liver (Fig. 7l).
+  - 22. Conclusion: Transient overexpression of RBFOX2 reduces biliary cholesterol secretion.
+      Model: C57BL6/J male mice fed high-fructose diet
+      Intervention: Adenoviral overexpression of RBFOX2 WT vs GFP control
+      Readout: LC–MS quantification of bile cholesterol
+      Result/Stats: n = 8–9; two-tailed unpaired t-test; decreased biliary cholesterol with RBFOX2 overexpression
+      Extra Data: Figure 5g
+      Evidence Type: Animal Function Experiments
+      Excerpt: LC–MS/MS lipidomics showed that RBFOX2 over-expression is associated with a decrease ... in the bile (Fig. 5g).
+[SUMMARY]:
+  - The report compiles key experimental findings.</pre></div></div></div></div></div></main><footer>&copy; 2025 AgentLnc. All Rights Reserved.</footer></body></html>

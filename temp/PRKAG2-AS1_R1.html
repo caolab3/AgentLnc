@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Skill 1 — lncRNA–RBP Inference</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+  /* === Shared base tokens and layout === */
+  :root {
+    --base-font: 16.5px;
+    --h1: 22px; --h2: 20px; --h3: 18px; --h4: 16px;
+    --sidebar-width: 260px; --sidebar-left: 24px; --content-gap: 28px;
+
+    --surface: #ffffff; --surface-2: #f7f9fb;
+    --primary: #0b6cff; --primary-600: #084fc4;
+    --border: #e5e7eb; --text: #0f172a; --muted: #64748b;
+    --table-head: #f1f5f9;
+
+    /* DB table scroll vars */
+    --db-max-height: 60vh;
+    --db-min-table-w: 960px;
+    --db-cell-w: 160px;
+    --gtex-name-w: 260px;
+
+    /* NEW: per-table/per-tab column widths */
+    --npinter-interaction-w: 700px;  /* NPInter → Interaction summary */
+    --edges-explanation-w: 460px;    /* Fact Check → KG Edges 'Explanation' */
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: var(--base-font);
+    line-height: 1.6;
+    color: var(--text);
+    background: var(--surface-2);
+  }
+
+  h1 { font-size: var(--h1); }
+  h2 { font-size: var(--h2); }
+  h3 { font-size: var(--h3); }
+  h4 { font-size: var(--h4); }
+
+  header {
+    background: linear-gradient(to right, #00274d, #5a9bd6);
+    color: #fff;
+    padding: 18px 20px;
+    text-align: center;
+  }
+  footer {
+    background: #00274d;
+    color: #fff;
+    text-align: center;
+    padding: 14px;
+    margin-top: 20px;
+  }
+
+  /* Container defaults used by both pages */
+  .container {
+    padding: 20px;
+    margin-left: calc(var(--sidebar-left) + var(--sidebar-width) + var(--content-gap));
+    margin-right: 20px;
+  }
+  .textbox {
+    width: 90%;
+    margin: 0 auto;
+    padding: 18px 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 6px 16px rgba(15,23,42,.06);
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: calc(100vh - 220px);
+  }
+
+  /* Sidebar (used on report page; harmless elsewhere) */
+  #factCheckSidebar {
+    position: fixed !important;
+    top: 150px !important;
+    left: var(--sidebar-left) !important;
+    width: var(--sidebar-width) !important;
+    max-height: calc(100vh - 140px) !important;
+    overflow: auto !important;
+    background: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 12px 28px rgba(15,23,42,.10) !important;
+    padding: 12px !important;
+  }
+  #factCheckSidebar h3 { margin: 2px 4px 10px; font-weight: 700; }
+  .sidebar-button {
+    display: flex; align-items: center; gap: 8px;
+    width: 100%; padding: 10px 12px; margin-bottom: 8px;
+    background: #f1f5f9; color: var(--text);
+    border: 1px solid #e2e8f0; border-radius: 10px; cursor: pointer;
+    transition: background .18s ease, transform .12s ease, border-color .18s ease;
+    text-align: left; white-space: normal; word-break: break-word;
+  }
+  .sidebar-button:hover { background: #e2e8f0; transform: translateY(-1px); }
+  .sidebar-button.active {
+    background: var(--primary); color: #fff; border-color: var(--primary);
+    box-shadow: 0 0 0 1px var(--primary) inset, 0 4px 10px rgba(8,79,196,.25);
+  }
+
+  /* Tables (shared) */
+  .table-container {
+    max-height: var(--db-max-height);
+    overflow: auto;              /* both axes when needed */
+    margin: 12px 0;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #fff;
+    cursor: grab;
+  }
+  .table-container.dragging { cursor: grabbing; user-select: none; }
+
+  .table-container table {
+    width: max-content;          /* do not shrink */
+    min-width: var(--db-min-table-w);
+    border-collapse: collapse;
+    table-layout: fixed;         /* honor fixed cell widths */
+    font-size: 14px;
+  }
+
+  .table-container thead th {
+    position: sticky; top: 0; z-index: 1;
+    background: var(--table-head); font-weight: 700;
+  }
+
+  .table-container th,
+  .table-container td {
+    width: var(--db-cell-w);
+    min-width: var(--db-cell-w);
+    max-width: var(--db-cell-w);
+    border: 1px solid #e5e7eb;
+    padding: 10px;
+    text-align: left;
+    vertical-align: top;
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+
+  .table-container tr:nth-child(even) { background: #fafcff; }
+  .table-container tr:hover { background: #f2f8ff; }
+
+  .cell-content {
+    max-width: 100%;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+
+  /* GTEx first column wider */
+  .gtex-container table th:first-child,
+  .gtex-container table td:first-child {
+    width: var(--gtex-name-w) !important;
+    min-width: var(--gtex-name-w) !important;
+    max-width: var(--gtex-name-w) !important;
+  }
+  .gtex-container table { min-width: 1400px !important; }
+  #dbResults .col-npinter-interaction {
+    width: var(--npinter-interaction-w) !important;
+    min-width: var(--npinter-interaction-w) !important;
+    max-width: var(--npinter-interaction-w) !important;
+  }
+  #factCheck table#kg-edges thead th:nth-child(5),
+  #factCheck table#kg-edges tbody td:nth-child(5) {
+    width: var(--edges-explanation-w) !important;
+    min-width: var(--edges-explanation-w) !important;
+    max-width: var(--edges-explanation-w) !important;
+  }
+  /* Fact Check card containers */
+  .fact-check-table-container {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    background: #fbfdff;
+    box-shadow: 0 1px 2px rgba(15,23,42,.04);
+  }
+  .fact-check-gene-of-interest, .fact-check-subtask {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    background: var(--surface);
+    box-shadow: 0 6px 14px rgba(15,23,42,.06);
+    overflow: hidden;
+  }
+  .fact-check-gene-of-interest *, .fact-check-subtask * { max-width: 100%; }
+
+  .fact-check-gene-of-interest pre,
+  .fact-check-subtask pre,
+  .fact-check-table-container pre,
+  .fact-check-gene-of-interest code,
+  .fact-check-subtask code,
+  .fact-check-table-container code {
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    font-size: 14px;
+  }
+
+  /* Cytoscape graph area tuned for 1080p */
+  #cytoscape-graph { width: 100%; height: 680px; min-height: 520px; }
+
+  /* Responsive fallback */
+  @media (max-width: 980px) {
+    #factCheckSidebar {
+      position: static !important;
+      width: auto !important;
+      max-height: none !important;
+      left: auto !important;
+    }
+    .container {
+      margin-left: 20px !important;
+      margin-right: 20px !important;
+    }
+    .tabs, .textbox { width: 100%; }
+  }
+</style>
+  <style>
+      .tabs {
+        width: 90%;
+        margin: 0 auto 16px;
+        overflow: hidden;
+        background: #f8fafc;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+      }
+      .tabs button {
+        background: transparent;
+        float: left;
+        border: none;
+        outline: none;
+        cursor: pointer;
+        padding: 12px 16px;
+        transition: .2s ease;
+        font-size: 15px;
+        font-weight: 600;
+        color: #0f172a;
+      }
+      .tabs button:hover { background: #eef4ff; }
+      .tabs button.active { background: #e7f0ff; }
+
+      .tabcontent { display: none; }
+      .tabcontent.active { display: block; }
+    </style>
+</head>
+<body>
+  <header><h1>Skill 1 — lncRNA–RBP Inference</h1></header>
+  
+  <div id='factCheckSidebar'><h3>Fact Check</h3><button class='sidebar-button' data-target='gene_1' onclick="goToFactCheckAndScroll('gene_1', this)">PRKAG2-AS1</button><button class='sidebar-button' data-target='gene_2' onclick="goToFactCheckAndScroll('gene_2', this)">CPSF7</button><button class='sidebar-button' data-target='gene_3' onclick="goToFactCheckAndScroll('gene_3', this)">LARP4B</button><button class='sidebar-button' data-target='gene_4' onclick="goToFactCheckAndScroll('gene_4', this)">RBFOX2</button><button class='sidebar-button' data-target='gene_5' onclick="goToFactCheckAndScroll('gene_5', this)">SRSF7</button><button class='sidebar-button' data-target='gene_6' onclick="goToFactCheckAndScroll('gene_6', this)">YTHDF2</button></div>
+  <div class="container">
+    <div class="tabs">
+      <button class="tablinks" id="defaultTab" onclick="openTab(event, 'knowledgeGraph')">Knowledge Graph</button>
+      <button class="tablinks" onclick="openTab(event, 'dbResults')">Database Search Results</button>
+      <button class="tablinks" onclick="openTab(event, 'gptResponse')">GPT Answer: Hypothesis</button>
+      <button id="factCheckTab" class="tablinks" onclick="openTab(event, 'factCheck')">Fact Check</button>
+    </div>
+    <div class="textbox">
+      <div id="knowledgeGraph" class="tabcontent">
+<style>
+#cytoscape-graph{
+  width:100%;
+  height:600px;
+  display:block;
+}
+</style>
+<div id="cytoscape-graph"></div>
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+    var cy = cytoscape({
+        container: document.getElementById('cytoscape-graph'),
+        elements: [{"data": {"id": "Node_1", "label": "PRKAG2-AS1", "definition": "Node of gene of interest", "node_type": "main", "bgColor": "red"}}, {"data": {"id": "Node_2", "label": "CPSF7", "definition": "Node of related gene", "node_type": "main", "bgColor": "orange"}}, {"data": {"id": "Node_3", "label": "PRKAG2-AS1_GF", "definition": "Gene-function node", "node_type": "sub", "bgColor": "blue"}}, {"data": {"id": "Node_4", "label": "PRKAG2-AS1_SL", "definition": "Sub-cellular localisation node", "node_type": "sub", "bgColor": "blue"}}, {"data": {"id": "Node_5", "label": "PRKAG2-AS1_BD", "definition": "Binding-data node", "node_type": "sub", "bgColor": "blue"}}, {"data": {"id": "Node_6", "label": "CPSF7_GF", "definition": "Gene-function node", "node_type": "sub", "bgColor": "blue"}}, {"data": {"id": "Node_7", "label": "CPSF7_SL", "definition": "Sub-cellular localisation node", "node_type": "sub", "bgColor": "blue"}}, {"data": {"id": "Node_8", "label": "CPSF7_BD", "definition": "Binding-data node", "node_type": "sub", "bgColor": "blue"}}, {"data": {"id": "Node_9", "label": "LARP4B", "definition": "Node of related gene", "node_type": "main", "bgColor": "orange"}}, {"data": {"id": "Node_10", "label": "LARP4B_GF", "definition": "Gene-function node", "node_type": "sub", "bgColor": "blue"}}, {"data": {"id": "Node_11", "label": "LARP4B_SL", "definition": "Sub-cellular localisation node", "node_type": "sub", "bgColor": "blue"}}, {"data": {"id": "Node_12", "label": "LARP4B_BD", "definition": "Binding-data node", "node_type": "sub", "bgColor": "blue"}}, {"data": {"id": "Node_13", "label": "RBFOX2", "definition": "Node of related gene", "node_type": "main", "bgColor": "orange"}}, {"data": {"id": "Node_14", "label": "RBFOX2_GF", "definition": "Gene-function node", "node_type": "sub", "bgColor": "blue"}}, {"data": {"id": "Node_15", "label": "RBFOX2_SL", "definition": "Sub-cellular localisation node", "node_type": "sub", "bgColor": "blue"}}, {"data": {"id": "Node_16", "label": "RBFOX2_BD", "definition": "Binding-data node", "node_type": "sub", "bgColor": "blue"}}, {"data": {"id": "Node_17", "label": "SRSF7", "definition": "Node of related gene", "node_type": "main", "bgColor": "orange"}}, {"data": {"id": "Node_18", "label": "SRSF7_GF", "definition": "Gene-function node", "node_type": "sub", "bgColor": "blue"}}, {"data": {"id": "Node_19", "label": "SRSF7_SL", "definition": "Sub-cellular localisation node", "node_type": "sub", "bgColor": "blue"}}, {"data": {"id": "Node_20", "label": "SRSF7_BD", "definition": "Binding-data node", "node_type": "sub", "bgColor": "blue"}}, {"data": {"id": "Node_21", "label": "YTHDF2", "definition": "Node of related gene", "node_type": "main", "bgColor": "orange"}}, {"data": {"id": "Node_22", "label": "YTHDF2_GF", "definition": "Gene-function node", "node_type": "sub", "bgColor": "blue"}}, {"data": {"id": "Node_23", "label": "YTHDF2_SL", "definition": "Sub-cellular localisation node", "node_type": "sub", "bgColor": "blue"}}, {"data": {"id": "Node_24", "label": "YTHDF2_BD", "definition": "Binding-data node", "node_type": "sub", "bgColor": "blue"}}, {"data": {"id": "Edge_1", "source": "Node_1", "target": "Node_3", "lineColor": "orange"}}, {"data": {"id": "Edge_2", "source": "Node_1", "target": "Node_4", "lineColor": "orange"}}, {"data": {"id": "Edge_3", "source": "Node_1", "target": "Node_5", "lineColor": "orange"}}, {"data": {"id": "Edge_4", "source": "Node_2", "target": "Node_6", "lineColor": "orange"}}, {"data": {"id": "Edge_5", "source": "Node_2", "target": "Node_7", "lineColor": "orange"}}, {"data": {"id": "Edge_6", "source": "Node_2", "target": "Node_8", "lineColor": "orange"}}, {"data": {"id": "Edge_7", "source": "Node_3", "target": "Node_6", "lineColor": "blue"}}, {"data": {"id": "Edge_8", "source": "Node_4", "target": "Node_7", "lineColor": "red"}}, {"data": {"id": "Edge_9", "source": "Node_5", "target": "Node_8", "lineColor": "blue"}}, {"data": {"id": "Edge_10", "source": "Node_1", "target": "Node_2", "lineColor": "red"}}, {"data": {"id": "Edge_14", "source": "Node_9", "target": "Node_10", "lineColor": "orange"}}, {"data": {"id": "Edge_15", "source": "Node_9", "target": "Node_11", "lineColor": "orange"}}, {"data": {"id": "Edge_16", "source": "Node_9", "target": "Node_12", "lineColor": "orange"}}, {"data": {"id": "Edge_17", "source": "Node_3", "target": "Node_10", "lineColor": "blue"}}, {"data": {"id": "Edge_18", "source": "Node_4", "target": "Node_11", "lineColor": "blue"}}, {"data": {"id": "Edge_19", "source": "Node_5", "target": "Node_12", "lineColor": "blue"}}, {"data": {"id": "Edge_20", "source": "Node_1", "target": "Node_9", "lineColor": "blue"}}, {"data": {"id": "Edge_24", "source": "Node_13", "target": "Node_14", "lineColor": "orange"}}, {"data": {"id": "Edge_25", "source": "Node_13", "target": "Node_15", "lineColor": "orange"}}, {"data": {"id": "Edge_26", "source": "Node_13", "target": "Node_16", "lineColor": "orange"}}, {"data": {"id": "Edge_27", "source": "Node_3", "target": "Node_14", "lineColor": "blue"}}, {"data": {"id": "Edge_28", "source": "Node_4", "target": "Node_15", "lineColor": "red"}}, {"data": {"id": "Edge_29", "source": "Node_5", "target": "Node_16", "lineColor": "red"}}, {"data": {"id": "Edge_30", "source": "Node_1", "target": "Node_13", "lineColor": "red"}}, {"data": {"id": "Edge_34", "source": "Node_17", "target": "Node_18", "lineColor": "orange"}}, {"data": {"id": "Edge_35", "source": "Node_17", "target": "Node_19", "lineColor": "orange"}}, {"data": {"id": "Edge_36", "source": "Node_17", "target": "Node_20", "lineColor": "orange"}}, {"data": {"id": "Edge_37", "source": "Node_3", "target": "Node_18", "lineColor": "blue"}}, {"data": {"id": "Edge_38", "source": "Node_4", "target": "Node_19", "lineColor": "red"}}, {"data": {"id": "Edge_39", "source": "Node_5", "target": "Node_20", "lineColor": "blue"}}, {"data": {"id": "Edge_40", "source": "Node_1", "target": "Node_17", "lineColor": "red"}}, {"data": {"id": "Edge_44", "source": "Node_21", "target": "Node_22", "lineColor": "orange"}}, {"data": {"id": "Edge_45", "source": "Node_21", "target": "Node_23", "lineColor": "orange"}}, {"data": {"id": "Edge_46", "source": "Node_21", "target": "Node_24", "lineColor": "orange"}}, {"data": {"id": "Edge_47", "source": "Node_3", "target": "Node_22", "lineColor": "blue"}}, {"data": {"id": "Edge_48", "source": "Node_4", "target": "Node_23", "lineColor": "blue"}}, {"data": {"id": "Edge_49", "source": "Node_5", "target": "Node_24", "lineColor": "blue"}}, {"data": {"id": "Edge_50", "source": "Node_1", "target": "Node_21", "lineColor": "blue"}}],
+        style: [
+            {
+                selector: 'node',
+                style: {
+                    'label': 'data(label)',
+                    'text-valign': 'center',
+                    'color': 'white',
+                    'text-outline-width': 2,
+                    'text-outline-color': 'data(bgColor)',
+                    'background-color': 'data(bgColor)',
+                    'width': 40,
+                    'height': 40,
+                    'font-size': 10,
+                    'text-wrap': 'wrap',
+                    'text-max-width': 80
+                }
+            },
+            {
+                selector: 'edge',
+                style: {
+                    'width': 2,
+                    'curve-style': 'bezier',
+                    'line-color': 'data(lineColor)',
+                    'font-size': 8,
+                    'text-rotation': 'autorotate',
+                    'target-arrow-shape': 'triangle',
+                    'target-arrow-color': 'data(lineColor)',
+                    'arrow-scale': 0.8
+                }
+            }
+        ],
+        layout   : {
+          name   : 'concentric',
+          fit    : true,
+          padding: 50,
+          animate: false,
+          concentric : n => n.degree(),
+          levelWidth : () => 2
+        }
+    });
+
+      cy.on('layoutstop', () => cy.fit());
+
+      const resizeObserver = new ResizeObserver(() => {
+        cy.resize();
+        cy.fit();
+      });
+      resizeObserver.observe(document.getElementById('cytoscape-graph'));
+
+      document.addEventListener('myTabShown', () => {
+        cy.resize();
+        cy.fit();
+      });
+});
+</script>
+<div id="legend" style="margin-top:20px;">
+<h3>Legend</h3>
+<ul style="list-style: none; padding-left: 0;">
+<li><span style="display:inline-block;width:20px;height:20px;background:red;margin-right:5px;"></span> Gene of Interest</li>
+<li><span style="display:inline-block;width:20px;height:20px;background:orange;margin-right:5px;"></span> RBP</li>
+<li><span style="display:inline-block;width:20px;height:20px;background:blue;margin-right:5px;"></span> Attribute</li>
+<li><span style="display:inline-block;width:20px;height:20px;background:red;margin-right:5px;"></span> Strong Edge</li>
+<li><span style="display:inline-block;width:20px;height:20px;background:blue;margin-right:5px;"></span> Weak Edge</li>
+<li><span style="display:inline-block;width:20px;height:20px;background:orange;margin-right:5px;"></span> Fact Edge</li>
+</ul>
+</div>
+</div>
+      <div id="dbResults" class="tabcontent"><h3>NPInter</h3>
+<div class="table-container">
+<table>
+<thead>
+<tr><th>LncRNA Name</th><th>RBP Name</th><th>RBP ID</th><th>Interaction Summary</th><th>Experiment Method</th><th>PMID</th><th>Species</th><th>Cell line</th><th>Interaction Type</th><th>Function Type</th><th>Interaction</th><th>Source INFO</th></tr>
+</thead>
+<tbody>
+<tr><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">WDR33</div></td><td><div class="cell-content">Q9C0J8</div></td><td><div class="cell-content">PAR-CLIP showed that WDR33 binds in and very close to the AAUAAA signal</div></td><td><div class="cell-content">PAR-CLIP</div></td><td><div class="cell-content">25301781</div></td><td><div class="cell-content">Homo sapiens</div></td><td><div class="cell-content">HEK293</div></td><td><div class="cell-content">ncRNA-protein binding</div></td><td><div class="cell-content">binding</div></td><td><div class="cell-content">RNA-Protein</div></td><td><div class="cell-content">High-throughput data</div></td></tr>
+<tr><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">SFRS1</div></td><td><div class="cell-content">Q07955</div></td><td><div class="cell-content">Cross-linking immunoprecipitation and high-throughput sequencing (CLIP-seq) identified binding sites for SFRS1 in the transcriptome of cultured human embryonic kidney cells. SFRS1 was found to engage many different classes of functionally distinct transcripts including mRNA, miRNA, snoRNAs, ncRNAs, and conserved intergenic transcripts of unknown function.</div></td><td><div class="cell-content">CLIP-Seq</div></td><td><div class="cell-content">19116412</div></td><td><div class="cell-content">Homo sapiens</div></td><td><div class="cell-content">HEK293T</div></td><td><div class="cell-content">ncRNA-protein binding</div></td><td><div class="cell-content">binding</div></td><td><div class="cell-content">RNA-Protein</div></td><td><div class="cell-content">High-throughput data</div></td></tr>
+<tr><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">LAR4B</div></td><td><div class="cell-content">Q92615</div></td><td><div class="cell-content">derived from CLIP-seq dataset</div></td><td><div class="cell-content">CLIP</div></td><td><div class="cell-content">26001795</div></td><td><div class="cell-content">Homo sapiens</div></td><td><div class="cell-content">DMEM</div></td><td><div class="cell-content">ncRNA-protein binding</div></td><td><div class="cell-content">binding</div></td><td><div class="cell-content">RNA-Protein</div></td><td><div class="cell-content">GSE69169</div></td></tr>
+<tr><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">FBL</div></td><td><div class="cell-content">P22087</div></td><td><div class="cell-content">derived from CLIP-seq dataset</div></td><td><div class="cell-content">CLIP</div></td><td><div class="cell-content">28031372</div></td><td><div class="cell-content">Homo sapiens</div></td><td><div class="cell-content">Flp-In 293</div></td><td><div class="cell-content">ncRNA-protein binding</div></td><td><div class="cell-content">binding</div></td><td><div class="cell-content">RNA-Protein</div></td><td><div class="cell-content">GSE77027</div></td></tr>
+<tr><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">DHX36</div></td><td><div class="cell-content">Q9H2U1</div></td><td><div class="cell-content">binding derived from CLIP-seq dataset(GSE105171); DHX36-iso1 E335A overexpression</div></td><td><div class="cell-content">PAR-CLIP</div></td><td><div class="cell-content">31160600</div></td><td><div class="cell-content">Homo sapiens</div></td><td><div class="cell-content">HEK293</div></td><td><div class="cell-content">CLIP; ncRNA-protein binding</div></td><td><div class="cell-content">binding</div></td><td><div class="cell-content">RNA-Protein</div></td><td><div class="cell-content">High-throughput data</div></td></tr>
+</tbody>
+</table>
+</div>
+<hr/>
+<h3>starBase</h3>
+<div class="table-container">
+<table>
+<thead>
+<tr><th>RBP Name</th><th>lncRNA ID</th><th>LncRNA Name</th><th>geneType</th><th>totalClipExpNum</th><th>totalClipSiteNum</th><th>chromosome</th><th>broadStart</th><th>broadEnd</th><th>strand</th><th>cellline/tissue</th></tr>
+</thead>
+<tbody>
+<tr><td><div class="cell-content">ELAVL3</div></td><td><div class="cell-content">ENSG00000239911</div></td><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">lncRNA</div></td><td><div class="cell-content">7</div></td><td><div class="cell-content">7</div></td><td><div class="cell-content">chr7</div></td><td><div class="cell-content">151879119</div></td><td><div class="cell-content">151879180</div></td><td><div class="cell-content">+</div></td><td><div class="cell-content">brain</div></td></tr>
+<tr><td><div class="cell-content">DDX3X</div></td><td><div class="cell-content">ENSG00000239911</div></td><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">lncRNA</div></td><td><div class="cell-content">4</div></td><td><div class="cell-content">9</div></td><td><div class="cell-content">chr7</div></td><td><div class="cell-content">151877516</div></td><td><div class="cell-content">151877762</div></td><td><div class="cell-content">+</div></td><td><div class="cell-content">HEK293</div></td></tr>
+<tr><td><div class="cell-content">YTHDF1</div></td><td><div class="cell-content">ENSG00000239911</div></td><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">lncRNA</div></td><td><div class="cell-content">2</div></td><td><div class="cell-content">4</div></td><td><div class="cell-content">chr7</div></td><td><div class="cell-content">151878850</div></td><td><div class="cell-content">151879082</div></td><td><div class="cell-content">+</div></td><td><div class="cell-content">HEK293T</div></td></tr>
+<tr><td><div class="cell-content">DDX3X</div></td><td><div class="cell-content">ENSG00000239911</div></td><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">lncRNA</div></td><td><div class="cell-content">4</div></td><td><div class="cell-content">9</div></td><td><div class="cell-content">chr7</div></td><td><div class="cell-content">151878674</div></td><td><div class="cell-content">151878714</div></td><td><div class="cell-content">+</div></td><td><div class="cell-content">HEK293</div></td></tr>
+<tr><td><div class="cell-content">DDX3X</div></td><td><div class="cell-content">ENSG00000239911</div></td><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">lncRNA</div></td><td><div class="cell-content">4</div></td><td><div class="cell-content">9</div></td><td><div class="cell-content">chr7</div></td><td><div class="cell-content">151878954</div></td><td><div class="cell-content">151878993</div></td><td><div class="cell-content">+</div></td><td><div class="cell-content">HEK293</div></td></tr>
+<tr><td><div class="cell-content">RBM15B</div></td><td><div class="cell-content">ENSG00000239911</div></td><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">lncRNA</div></td><td><div class="cell-content">2</div></td><td><div class="cell-content">2</div></td><td><div class="cell-content">chr7</div></td><td><div class="cell-content">151877155</div></td><td><div class="cell-content">151877244</div></td><td><div class="cell-content">+</div></td><td><div class="cell-content">HEK293T</div></td></tr>
+<tr><td><div class="cell-content">DHX36</div></td><td><div class="cell-content">ENSG00000239911</div></td><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">lncRNA</div></td><td><div class="cell-content">2</div></td><td><div class="cell-content">2</div></td><td><div class="cell-content">chr7</div></td><td><div class="cell-content">151878920</div></td><td><div class="cell-content">151878984</div></td><td><div class="cell-content">+</div></td><td><div class="cell-content">HEK293</div></td></tr>
+<tr><td><div class="cell-content">YTHDF2</div></td><td><div class="cell-content">ENSG00000239911</div></td><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">lncRNA</div></td><td><div class="cell-content">1</div></td><td><div class="cell-content">1</div></td><td><div class="cell-content">chr7</div></td><td><div class="cell-content">151878640</div></td><td><div class="cell-content">151878679</div></td><td><div class="cell-content">+</div></td><td><div class="cell-content">HEK293T</div></td></tr>
+<tr><td><div class="cell-content">RBM4</div></td><td><div class="cell-content">ENSG00000239911</div></td><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">lncRNA</div></td><td><div class="cell-content">1</div></td><td><div class="cell-content">1</div></td><td><div class="cell-content">chr7</div></td><td><div class="cell-content">151877237</div></td><td><div class="cell-content">151877276</div></td><td><div class="cell-content">+</div></td><td><div class="cell-content">HAP1</div></td></tr>
+<tr><td><div class="cell-content">EIF3A</div></td><td><div class="cell-content">ENSG00000239911</div></td><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">lncRNA</div></td><td><div class="cell-content">1</div></td><td><div class="cell-content">4</div></td><td><div class="cell-content">chr7</div></td><td><div class="cell-content">151877627</div></td><td><div class="cell-content">151877627</div></td><td><div class="cell-content">+</div></td><td><div class="cell-content">HEK293T</div></td></tr>
+<tr><td><div class="cell-content">EIF3A</div></td><td><div class="cell-content">ENSG00000239911</div></td><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">lncRNA</div></td><td><div class="cell-content">1</div></td><td><div class="cell-content">4</div></td><td><div class="cell-content">chr7</div></td><td><div class="cell-content">151878821</div></td><td><div class="cell-content">151878860</div></td><td><div class="cell-content">+</div></td><td><div class="cell-content">HEK293T</div></td></tr>
+<tr><td><div class="cell-content">EIF3A</div></td><td><div class="cell-content">ENSG00000239911</div></td><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">lncRNA</div></td><td><div class="cell-content">1</div></td><td><div class="cell-content">4</div></td><td><div class="cell-content">chr7</div></td><td><div class="cell-content">151879129</div></td><td><div class="cell-content">151879129</div></td><td><div class="cell-content">+</div></td><td><div class="cell-content">HEK293T</div></td></tr>
+<tr><td><div class="cell-content">CPSF7</div></td><td><div class="cell-content">ENSG00000239911</div></td><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">lncRNA</div></td><td><div class="cell-content">1</div></td><td><div class="cell-content">1</div></td><td><div class="cell-content">chr7</div></td><td><div class="cell-content">151879099</div></td><td><div class="cell-content">151879138</div></td><td><div class="cell-content">+</div></td><td><div class="cell-content">HEK293</div></td></tr>
+<tr><td><div class="cell-content">NXF1</div></td><td><div class="cell-content">ENSG00000239911</div></td><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">lncRNA</div></td><td><div class="cell-content">1</div></td><td><div class="cell-content">2</div></td><td><div class="cell-content">chr7</div></td><td><div class="cell-content">151878543</div></td><td><div class="cell-content">151878601</div></td><td><div class="cell-content">+</div></td><td><div class="cell-content">HeLa</div></td></tr>
+<tr><td><div class="cell-content">U2AF1</div></td><td><div class="cell-content">ENSG00000239911</div></td><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">lncRNA</div></td><td><div class="cell-content">1</div></td><td><div class="cell-content">1</div></td><td><div class="cell-content">chr7</div></td><td><div class="cell-content">151877808</div></td><td><div class="cell-content">151877847</div></td><td><div class="cell-content">+</div></td><td><div class="cell-content">HBECs</div></td></tr>
+<tr><td><div class="cell-content">YTHDC1</div></td><td><div class="cell-content">ENSG00000239911</div></td><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">lncRNA</div></td><td><div class="cell-content">1</div></td><td><div class="cell-content">1</div></td><td><div class="cell-content">chr7</div></td><td><div class="cell-content">151878702</div></td><td><div class="cell-content">151878741</div></td><td><div class="cell-content">+</div></td><td><div class="cell-content">HEK293T</div></td></tr>
+<tr><td><div class="cell-content">SRSF3</div></td><td><div class="cell-content">ENSG00000239911</div></td><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">lncRNA</div></td><td><div class="cell-content">1</div></td><td><div class="cell-content">1</div></td><td><div class="cell-content">chr7</div></td><td><div class="cell-content">151879172</div></td><td><div class="cell-content">151879211</div></td><td><div class="cell-content">+</div></td><td><div class="cell-content">HeLa</div></td></tr>
+<tr><td><div class="cell-content">CSTF2T</div></td><td><div class="cell-content">ENSG00000239911</div></td><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">lncRNA</div></td><td><div class="cell-content">1</div></td><td><div class="cell-content">1</div></td><td><div class="cell-content">chr7</div></td><td><div class="cell-content">151879128</div></td><td><div class="cell-content">151879167</div></td><td><div class="cell-content">+</div></td><td><div class="cell-content">HEK293</div></td></tr>
+<tr><td><div class="cell-content">NUDT21</div></td><td><div class="cell-content">ENSG00000239911</div></td><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">lncRNA</div></td><td><div class="cell-content">1</div></td><td><div class="cell-content">1</div></td><td><div class="cell-content">chr7</div></td><td><div class="cell-content">151878828</div></td><td><div class="cell-content">151878828</div></td><td><div class="cell-content">+</div></td><td><div class="cell-content">HEK293</div></td></tr>
+<tr><td><div class="cell-content">PUM1</div></td><td><div class="cell-content">ENSG00000239911</div></td><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">lncRNA</div></td><td><div class="cell-content">1</div></td><td><div class="cell-content">1</div></td><td><div class="cell-content">chr7</div></td><td><div class="cell-content">151879205</div></td><td><div class="cell-content">151879205</div></td><td><div class="cell-content">+</div></td><td><div class="cell-content">HCT116</div></td></tr>
+<tr><td><div class="cell-content">SRSF7</div></td><td><div class="cell-content">ENSG00000239911</div></td><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">lncRNA</div></td><td><div class="cell-content">1</div></td><td><div class="cell-content">1</div></td><td><div class="cell-content">chr7</div></td><td><div class="cell-content">151879171</div></td><td><div class="cell-content">151879210</div></td><td><div class="cell-content">+</div></td><td><div class="cell-content">HeLa</div></td></tr>
+</tbody>
+</table>
+</div>
+<hr/>
+<h3>RNAInter</h3>
+<div class="table-container">
+<table>
+<thead>
+<tr><th>LncRNA Name</th><th>LncRNA ID</th><th>LncRNA species</th><th>RBP Name</th><th>RBP ID</th><th>RBP Species</th><th>RNAInter Score</th><th>Source INFO</th></tr>
+</thead>
+<tbody>
+<tr><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">NCBI:100505483</div></td><td><div class="cell-content">Homo sapiens</div></td><td><div class="cell-content">LARP4B</div></td><td><div class="cell-content">NCBI:23185</div></td><td><div class="cell-content">Homo sapiens</div></td><td><div class="cell-content">0.3047</div></td><td><div class="cell-content">PAR-CLIP</div></td></tr>
+<tr><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">NCBI:100505483</div></td><td><div class="cell-content">Homo sapiens</div></td><td><div class="cell-content">SRSF7</div></td><td><div class="cell-content">NCBI:6432</div></td><td><div class="cell-content">Homo sapiens</div></td><td><div class="cell-content">0.2571</div></td><td><div class="cell-content">PAR-CLIP</div></td></tr>
+<tr><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">NCBI:100505483</div></td><td><div class="cell-content">Homo sapiens</div></td><td><div class="cell-content">CPSF7</div></td><td><div class="cell-content">NCBI:79869</div></td><td><div class="cell-content">Homo sapiens</div></td><td><div class="cell-content">0.2457</div></td><td><div class="cell-content">PAR-CLIP</div></td></tr>
+<tr><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">NCBI:100505483</div></td><td><div class="cell-content">Homo sapiens</div></td><td><div class="cell-content">SRSF1</div></td><td><div class="cell-content">NCBI:6426</div></td><td><div class="cell-content">Homo sapiens</div></td><td><div class="cell-content">0.2414</div></td><td><div class="cell-content">CLIP-seq</div></td></tr>
+<tr><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">NCBI:100505483</div></td><td><div class="cell-content">Homo sapiens</div></td><td><div class="cell-content">RANGAP1</div></td><td><div class="cell-content">NCBI:5905</div></td><td><div class="cell-content">Homo sapiens</div></td><td><div class="cell-content">0.2331</div></td><td><div class="cell-content">eCLIP</div></td></tr>
+<tr><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">NCBI:100505483</div></td><td><div class="cell-content">Homo sapiens</div></td><td><div class="cell-content">RNF219</div></td><td><div class="cell-content">NCBI:79596</div></td><td><div class="cell-content">Homo sapiens</div></td><td><div class="cell-content">0.2331</div></td><td><div class="cell-content">eCLIP</div></td></tr>
+<tr><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">NCBI:100505483</div></td><td><div class="cell-content">Homo sapiens</div></td><td><div class="cell-content">LIN28A</div></td><td><div class="cell-content">NCBI:79727</div></td><td><div class="cell-content">Homo sapiens</div></td><td><div class="cell-content">0.2096</div></td><td><div class="cell-content">eCLIP</div></td></tr>
+<tr><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">NCBI:100505483</div></td><td><div class="cell-content">Homo sapiens</div></td><td><div class="cell-content">RBFOX2</div></td><td><div class="cell-content">NCBI:23543</div></td><td><div class="cell-content">Homo sapiens</div></td><td><div class="cell-content">0.2096</div></td><td><div class="cell-content">eCLIP</div></td></tr>
+</tbody>
+</table>
+</div>
+<hr/>
+<h3>GTEx_Tissue</h3>
+<div class="table-container gtex-container">
+<table>
+<thead>
+<tr><th>Name</th><th>Description</th><th>Brain_Frontal_Cortex_BA9</th><th>Brain_Anterior_cingulate_cortex_BA24</th><th>Brain_Cortex</th><th>Adipose_Subcutaneous</th><th>Brain_Hippocampus</th><th>Brain_Amygdala</th><th>Breast_Mammary_Tissue</th><th>Prostate</th><th>Pancreas_Islets</th><th>Brain_Hypothalamus</th><th>Adipose_Visceral_Omentum</th><th>Cervix_Endocervix</th><th>Small_Intestine_Terminal_Ileum_Lymphode_Aggregate</th><th>Liver_Portal_Tract</th><th>Brain_Nucleus_accumbens_basal_ganglia</th><th>Minor_Salivary_Gland</th><th>Liver</th><th>Fallopian_Tube</th><th>Nerve_Tibial</th><th>Liver_Hepatocyte</th><th>Thyroid</th><th>Ovary</th><th>Stomach_Mucosa</th><th>Brain_Caudate_basal_ganglia</th><th>Stomach_Mixed_Cell</th><th>Vagina</th><th>Bladder</th><th>Cervix_Ectocervix</th><th>Colon_Transverse_Mixed_Cell</th><th>Lung</th><th>Colon_Transverse</th><th>Stomach</th><th>Brain_Cerebellar_Hemisphere</th><th>Kidney_Medulla</th><th>Spleen</th><th>Colon_Transverse_Mucosa</th><th>Brain_Putamen_basal_ganglia</th><th>Brain_Cerebellum</th><th>Liver_Mixed_Cell</th><th>Small_Intestine_Terminal_Ileum_Mixed_Cell</th><th>Small_Intestine_Terminal_Ileum</th><th>Artery_Coronary</th><th>Stomach_Muscularis</th><th>Uterus</th><th>Skin_Sun_Exposed_Lower_leg</th><th>Colon_Transverse_Muscularis</th><th>Colon_Sigmoid</th><th>Pancreas_Acini</th><th>Brain_Substantia_nigra</th><th>Skin_Not_Sun_Exposed_Suprapubic</th><th>Brain_Spinal_cord_cervical_c-1</th><th>Esophagus_Gastroesophageal_Junction</th><th>Pancreas_Mixed_Cell</th><th>Artery_Tibial</th><th>Esophagus_Mucosa</th><th>Esophagus_Muscularis</th><th>Artery_Aorta</th><th>Testis</th><th>Kidney_Cortex</th><th>Pancreas</th><th>Pituitary</th><th>Whole_Blood</th><th>Heart_Atrial_Appendage</th><th>Adrenal_Gland</th><th>Heart_Left_Ventricle</th><th>Muscle_Skeletal</th><th>Cells_EBV-transformed_lymphocytes</th><th>Cells_Cultured_fibroblasts</th></tr>
+</thead>
+<tbody>
+<tr><td><div class="cell-content">ENSG00000239911.3</div></td><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">23.838</div></td><td><div class="cell-content">19.4249</div></td><td><div class="cell-content">16.0137</div></td><td><div class="cell-content">12.5006</div></td><td><div class="cell-content">11.1373</div></td><td><div class="cell-content">10.7355</div></td><td><div class="cell-content">9.27286</div></td><td><div class="cell-content">9.15866</div></td><td><div class="cell-content">8.89896</div></td><td><div class="cell-content">8.52832</div></td><td><div class="cell-content">8.449</div></td><td><div class="cell-content">7.97904</div></td><td><div class="cell-content">7.77697</div></td><td><div class="cell-content">7.60378</div></td><td><div class="cell-content">7.59099</div></td><td><div class="cell-content">7.51172</div></td><td><div class="cell-content">7.21851</div></td><td><div class="cell-content">7.20813</div></td><td><div class="cell-content">6.94614</div></td><td><div class="cell-content">6.41806</div></td><td><div class="cell-content">6.21973</div></td><td><div class="cell-content">5.97445</div></td><td><div class="cell-content">5.89695</div></td><td><div class="cell-content">5.78473</div></td><td><div class="cell-content">5.63227</div></td><td><div class="cell-content">5.59188</div></td><td><div class="cell-content">5.57209</div></td><td><div class="cell-content">5.54552</div></td><td><div class="cell-content">5.20885</div></td><td><div class="cell-content">5.1952</div></td><td><div class="cell-content">5.0769</div></td><td><div class="cell-content">5.00603</div></td><td><div class="cell-content">4.91852</div></td><td><div class="cell-content">4.87657</div></td><td><div class="cell-content">4.8512</div></td><td><div class="cell-content">4.7705</div></td><td><div class="cell-content">4.74654</div></td><td><div class="cell-content">4.7367</div></td><td><div class="cell-content">4.70657</div></td><td><div class="cell-content">4.69102</div></td><td><div class="cell-content">4.63916</div></td><td><div class="cell-content">4.60842</div></td><td><div class="cell-content">4.60093</div></td><td><div class="cell-content">4.56065</div></td><td><div class="cell-content">4.56044</div></td><td><div class="cell-content">4.0745</div></td><td><div class="cell-content">3.97269</div></td><td><div class="cell-content">3.77376</div></td><td><div class="cell-content">3.77029</div></td><td><div class="cell-content">3.75059</div></td><td><div class="cell-content">3.60869</div></td><td><div class="cell-content">3.5548</div></td><td><div class="cell-content">3.38982</div></td><td><div class="cell-content">3.31976</div></td><td><div class="cell-content">3.03541</div></td><td><div class="cell-content">2.98284</div></td><td><div class="cell-content">2.85474</div></td><td><div class="cell-content">2.6135</div></td><td><div class="cell-content">2.60835</div></td><td><div class="cell-content">2.36032</div></td><td><div class="cell-content">2.16066</div></td><td><div class="cell-content">2.10064</div></td><td><div class="cell-content">1.7301</div></td><td><div class="cell-content">1.62722</div></td><td><div class="cell-content">1.0749</div></td><td><div class="cell-content">0.60577</div></td><td><div class="cell-content">0.397363</div></td><td><div class="cell-content">0.160804</div></td></tr>
+</tbody>
+</table>
+</div>
+<hr/>
+</div>
+      <div id="gptResponse" class="tabcontent"><div class="gene-entry">
+<h2>Candidate 1</h2>
+<p><strong>Gene Name:</strong> CPSF7<br/>
+<strong>Hit Count:</strong> 5<br/>
+<strong>Potential Mechanism:</strong> CPSF7 is associated with RNA cleavage and polyadenylation, potentially influencing the stability of transcripts related to liver metabolism.<br/>
+<strong>Information Source:</strong> RNAInter, starBase<br/></p>
+</div><br/>
+<div class="gene-entry">
+<h2>Candidate 2</h2>
+<p><strong>Gene Name:</strong> LARP4B<br/>
+<strong>Hit Count:</strong> 5<br/>
+<strong>Potential Mechanism:</strong> LARP4B is implicated in mRNA stability and translation, which could affect the expression of metabolic enzymes in the liver.<br/>
+<strong>Information Source:</strong> NPInter, RNAInter<br/></p>
+</div><br/>
+<div class="gene-entry">
+<h2>Candidate 3</h2>
+<p><strong>Gene Name:</strong> RBFOX2<br/>
+<strong>Hit Count:</strong> 5<br/>
+<strong>Potential Mechanism:</strong> RBFOX2 regulates alternative splicing and may modulate the expression of key metabolic regulators in liver cells.<br/>
+<strong>Information Source:</strong> RNAInter<br/></p>
+</div><br/>
+<div class="gene-entry">
+<h2>Candidate 4</h2>
+<p><strong>Gene Name:</strong> SRSF7<br/>
+<strong>Hit Count:</strong> 5<br/>
+<strong>Potential Mechanism:</strong> SRSF7 is involved in RNA splicing and may regulate alternative splicing of metabolic genes in the liver.<br/>
+<strong>Information Source:</strong> RNAInter, starBase<br/></p>
+</div><br/>
+<div class="gene-entry">
+<h2>Candidate 5</h2>
+<p><strong>Gene Name:</strong> YTHDF2<br/>
+<strong>Hit Count:</strong> 5<br/>
+<strong>Potential Mechanism:</strong> YTHDF2 is an m6A reader protein that can mediate mRNA degradation, potentially targeting transcripts involved in liver metabolic pathways.<br/>
+<strong>Information Source:</strong> starBase<br/></p>
+</div><br/></div>
+      <div id="factCheck" class="tabcontent"><div>
+<div class="fact-check-gene-of-interest" id="gene_1" style="border:1px solid #ccc; padding:10px; margin-bottom:10px;
+                    word-wrap:break-word; overflow-wrap:break-word;">
+<br/><h2>Gene of Interest Fact Check</h2>
+<div class="fact-check-table-container"><div><h3>General Information</h3><p><strong>Search Query:</strong> PRKAG2-AS1 gene function</p><h4>GPT Evaluated Evidence for General Information</h4><pre>1. Section: -Abstract- PRKAG2-AS1, a long non-coding RNA (lncRNA), was found within the promoter region of PRKAG2. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC10950609/]
+2. Section: -Abstract- The manipulation of PRKAG2-AS1 by knockdown and overexpression within the nucleus significantly altered PRKAG2 expression in a cis-regulatory manner. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC10950609/]
+3. Section: -Abstract- Finally, it was determined that PRKAG2-AS1 exerts direct control over the transcription of PRKAG2 by its binding to their promoters. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC10950609/]
+4. Section: -Introduction- The presence of a lncRNA called PRKAG2-AS1 has been discovered in the promoter region of the PRKAG2 gene. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC10950609/]
+5. Section: -Discussion- Our findings indicate that the expression of PRKAG2 is regulated by PRKAG2-AS1, which directly interacts with the promoter region of PRKAG2. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC10950609/]</pre><hr/><h3>Subcellular Localization</h3><p><strong>Search Query:</strong> PRKAG2-AS1 subcellular localization</p><h4>GPT Evaluated Evidence for Subcellular Localization</h4><pre>1. Section: Abstract - The localization of PRKAG2-AS1 was predominantly observed in the nucleus, as revealed using nuclear and cytoplasmic fractionation and fluorescence in situ hybridization. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC10950609/]
+2. Section: Abstract - PRKAG2-AS1 was mainly expressed in cytoplasm of HCC cells. [Source: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8076551/]
+3. Section: Results - The presence of PRKAG2-AS1 was found in both the cytosol and nucleus, with a predominant localization within the nucleus. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC10950609/]
+4. Section: Results - RNA in situ hybridization with biotin-labeled specific probes revealed that PRKAG2-AS1 was primarily expressed in the nucleus. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC10950609/]
+5. Section: Results - The cellular distribution of PRKAG2-AS1 in HCCLM3 and PLC5 cells showed that PRKAG2-AS1 was mainly expressed in cytoplasm. [Source: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8076551/]</pre><hr/></div></div>
+</div><hr/><div class="fact-check-subtask" id="gene_2" style="border:1px solid #ccc; padding:10px; margin-bottom:10px;        word-wrap:break-word; overflow-wrap:break-word;"><br/><h3>CPSF7</h3><br/><strong>Related Information from Databases and Data Analysis:</strong><br/><div class="fact-check-table-container"><table border="1" style="border-collapse:collapse;">
+<thead><tr><th>RBP Name</th><th>lncRNA ID</th><th>LncRNA Name</th><th>geneType</th><th>totalClipExpNum</th><th>totalClipSiteNum</th><th>chromosome</th><th>broadStart</th><th>broadEnd</th><th>strand</th><th>cellline/tissue</th></tr></thead>
+<tbody>
+<tr><td><div class="cell-content">CPSF7</div></td><td><div class="cell-content">ENSG00000239911</div></td><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">lncRNA</div></td><td><div class="cell-content">1</div></td><td><div class="cell-content">1</div></td><td><div class="cell-content">chr7</div></td><td><div class="cell-content">151879099</div></td><td><div class="cell-content">151879138</div></td><td><div class="cell-content">+</div></td><td><div class="cell-content">HEK293</div></td></tr>
+</tbody>
+</table>
+<table border="1" style="border-collapse:collapse;">
+<thead><tr><th>LncRNA Name</th><th>LncRNA ID</th><th>LncRNA species</th><th>RBP Name</th><th>RBP ID</th><th>RBP Species</th><th>RNAInter Score</th><th>Source INFO</th></tr></thead>
+<tbody>
+<tr><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">NCBI:100505483</div></td><td><div class="cell-content">Homo sapiens</div></td><td><div class="cell-content">CPSF7</div></td><td><div class="cell-content">NCBI:79869</div></td><td><div class="cell-content">Homo sapiens</div></td><td><div class="cell-content">0.2457</div></td><td><div class="cell-content">PAR-CLIP</div></td></tr>
+</tbody>
+</table>
+</div><br/><h2>Detailed Google Search Results:</h2><br/><div class="fact-check-table-container"><div><h3>General Information</h3><p><strong>Search Query:</strong> CPSF7 gene function</p><h4>GPT Evaluated Evidence for General Information</h4><pre>1. Section: -Abstract- Cleavage and polyadenylation specific factor 7 (CPSF7) is an important participator in the cleavage and polyadenylation of pre-mRNAs. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC9587529/]  
+2. Section: -Abstract- Silencing of CPSF7 inhibits the malignant characteristics of LUAD cells by blocking the AKT/mTOR signaling pathway. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC9587529/]  
+3. Section: -Introduction- CPSF7, also known as CFIm59, is a large subunit of cleavage factor involved in the cleavage and polyadenylation of pre-mRNAs. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC9587529/]  
+4. Section: -Results- CPSF7 acts as an oncogene in LUAD cells. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC9587529/]  
+5. Section: -Discussion- CPSF7, a key complex in polyadenylation, was found to be upregulated in LUAD cells. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC9587529/]</pre><hr/><h3>Gene Function under condition</h3><p><strong>Search Query:</strong> CPSF7 gene function Liver metabolism</p><h4>GPT Evaluated Evidence for Gene Function under condition</h4><pre>1. Section: -Discussion- For example, Ji and colleagues found CPSF7 is activated and regulates liver cancer growth and metastasis by targeting the WWP2/PTEN/AKT signaling pathway. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC7923339/]</pre><hr/></div></div><br/><h2>Knowledge Graph Construction:</h2><br/><div class="fact-check-table-container"><div class="table-container"><h3>Nodes</h3><table id="kg-nodes"><thead><tr><th>Node_ID</th><th>Node_Name</th><th>Definition</th></tr></thead><tbody><tr><td>Node_1</td><td>PRKAG2-AS1</td><td>Node of gene of interest</td></tr><tr><td>Node_2</td><td>CPSF7</td><td>Node of related gene</td></tr><tr><td>Node_3</td><td>PRKAG2-AS1_GF</td><td>Gene-function node</td></tr><tr><td>Node_4</td><td>PRKAG2-AS1_SL</td><td>Sub-cellular localisation node</td></tr><tr><td>Node_5</td><td>PRKAG2-AS1_BD</td><td>Binding-data node</td></tr><tr><td>Node_6</td><td>CPSF7_GF</td><td>Gene-function node</td></tr><tr><td>Node_7</td><td>CPSF7_SL</td><td>Sub-cellular localisation node</td></tr><tr><td>Node_8</td><td>CPSF7_BD</td><td>Binding-data node</td></tr></tbody></table></div><div class="table-container"><h3>Edges</h3><table id="kg-edges"><thead><tr><th>Edge_ID</th><th>Connection</th><th>Node_in_Edge</th><th>Edge_Type</th><th>Explanation</th></tr></thead><tbody><tr><td>Edge_1</td><td>Node_1-Node_3</td><td>PRKAG2-AS1-PRKAG2-AS1_GF</td><td>Fact</td><td>PRKAG2-AS1 is a long non-coding RNA located in the promoter region of PRKAG2 (Source: PMC10950609). Knockdown and overexpression in the nucleus significantly alter PRKAG2 expression in a cis-regulatory manner, and promoter-binding assays confirm direct transcriptional control. Further research could explore additional target genes and detailed mechanistic pathways.</td></tr>
+<tr><td>Edge_2</td><td>Node_1-Node_4</td><td>PRKAG2-AS1-PRKAG2-AS1_SL</td><td>Fact</td><td>Subcellular fractionation and FISH (PMC10950609) show predominant nuclear localization of PRKAG2-AS1 with some cytosolic presence, while studies in HCCLM3 and PLC5 cells (PMC8076551) report cytoplasmic enrichment. RNA in situ hybridization corroborates strong nuclear expression. Additional studies are needed to clarify context-dependent distribution.</td></tr>
+<tr><td>Edge_3</td><td>Node_1-Node_5</td><td>PRKAG2-AS1-PRKAG2-AS1_BD</td><td>Fact</td><td>PAR-CLIP data reveal CPSF7 binds PRKAG2-AS1 at chr7:151879099-151879138 in HEK293 cells (totalClipExpNum=1, totalClipSiteNum=1; RNAInter score=0.2457). This specific interaction suggests a regulatory role; further mapping of binding sites and exploration in diverse cell types could uncover additional mechanisms.</td></tr>
+<tr><td>Edge_4</td><td>Node_2-Node_6</td><td>CPSF7-CPSF7_GF</td><td>Fact</td><td>CPSF7 (CFIm59) is a core component of the cleavage and polyadenylation complex, essential for pre-mRNA 3′ end processing (PMC9587529). In lung adenocarcinoma, CPSF7 acts as an oncogene by activating AKT/mTOR signaling and is upregulated in LUAD cells; in liver cancer models it regulates growth and metastasis via the WWP2/PTEN/AKT pathway. Further functional studies could elucidate additional roles and pathways.</td></tr>
+<tr><td>Edge_5</td><td>Node_2-Node_7</td><td>CPSF7-CPSF7_SL</td><td>Fact</td><td>CPSF7 functions within the cleavage and polyadenylation machinery, implying primary nuclear localization, likely within the nucleoplasm or nucleolus. Precise subnuclear distribution remains to be defined by targeted immunolocalization and fractionation studies.</td></tr>
+<tr><td>Edge_6</td><td>Node_2-Node_8</td><td>CPSF7-CPSF7_BD</td><td>Fact</td><td>PAR-CLIP experiments identify a binding event between CPSF7 and PRKAG2-AS1 at chr7:151879099-151879138 in HEK293 cells (totalClipExpNum=1, totalClipSiteNum=1; RNAInter score=0.2457). Further binding assays across multiple conditions and cell lines could clarify the dynamics and functional implications of this interaction.</td></tr><tr><td>Edge_7</td><td>Node_3-Node_6</td><td>PRKAG2-AS1_GF-CPSF7_GF</td><td>Weak Relation</td><td>Both PRKAG2-AS1 and CPSF7 play roles in RNA processing and gene expression regulation—PRKAG2-AS1 acts as a cis-regulatory lncRNA while CPSF7 is a core polyadenylation factor. Although no direct functional axis has been described, their shared involvement in transcript maturation suggests cross-talk. Further work could test whether PRKAG2-AS1 influences CPSF7 expression or activity and explore downstream effects on polyadenylation.</td></tr>
+<tr><td>Edge_8</td><td>Node_4-Node_7</td><td>PRKAG2-AS1_SL-CPSF7_SL</td><td>Strong Relation</td><td>Subcellular data place both PRKAG2-AS1 and CPSF7 predominantly in the nucleus, indicating co-localization within nucleoplasmic or nucleolar compartments. This spatial overlap supports functional interplay. Future super-resolution imaging and targeted fractionation could map their precise subnuclear distributions and validate interaction sites.</td></tr>
+<tr><td>Edge_9</td><td>Node_5-Node_8</td><td>PRKAG2-AS1_BD-CPSF7_BD</td><td>Weak Relation</td><td>PAR-CLIP experiments in HEK293 cells reveal a binding event between CPSF7 and PRKAG2-AS1, demonstrating direct interaction potential. However, this has not been confirmed in liver contexts where metabolism is central. Conducting liver-specific CLIP or RIP assays and assessing binding dynamics across tissues would clarify the relevance of this interaction.</td></tr>
+<tr><td>Edge_10</td><td>Node_1-Node_2</td><td>PRKAG2-AS1-CPSF7</td><td>Strong Relation</td><td>Combined evidence shows strong nuclear co-localization and direct binding potential alongside overlapping roles in RNA maturation. Although gene-function links are indirect, the convergence of localization and binding supports a functional connection. Future studies should integrate tissue-specific binding assays, perturbation of PRKAG2-AS1, and readouts of CPSF7-mediated polyadenylation to define their regulatory axis.</td></tr></tbody></table></div></div></div><hr/><div class="fact-check-subtask" id="gene_3" style="border:1px solid #ccc; padding:10px; margin-bottom:10px;        word-wrap:break-word; overflow-wrap:break-word;"><br/><h3>LARP4B</h3><br/><strong>Related Information from Databases and Data Analysis:</strong><br/><div class="fact-check-table-container"><table border="1" style="border-collapse:collapse;">
+<thead><tr><th>LncRNA Name</th><th>LncRNA ID</th><th>LncRNA species</th><th>RBP Name</th><th>RBP ID</th><th>RBP Species</th><th>RNAInter Score</th><th>Source INFO</th></tr></thead>
+<tbody>
+<tr><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">NCBI:100505483</div></td><td><div class="cell-content">Homo sapiens</div></td><td><div class="cell-content">LARP4B</div></td><td><div class="cell-content">NCBI:23185</div></td><td><div class="cell-content">Homo sapiens</div></td><td><div class="cell-content">0.3047</div></td><td><div class="cell-content">PAR-CLIP</div></td></tr>
+</tbody>
+</table>
+</div><br/><h2>Detailed Google Search Results:</h2><br/><div class="fact-check-table-container"><div><h3>General Information</h3><p><strong>Search Query:</strong> LARP4B gene function</p><h4>GPT Evaluated Evidence for General Information</h4><pre>1. Section: **-Abstract-** The La-related protein 4B (LARP4B) belongs to an evolutionarily conserved family of RNA-binding proteins characterized by the presence of a La-module implicated in direct RNA binding. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC4478348/]  
+
+2. Section: **-Abstract-** Our data identify LARP4B as a component of the mRNP code that influences the expression of its mRNA targets by affecting their stability. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC4478348/]  
+
+3. Section: **-Abstract-** In sum, we identified LARP4B as a stimulatory factor of translation. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC2905749/]  
+
+4. Section: **-Abstract-** Biochemical experiments further uncovered an interaction of LARP4B with the cytosolic poly(A) binding protein 1 (PABPC1) and the receptor for activated C Kinase (RACK1), a component of the 40S ribosomal subunit. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC2905749/]  
+
+5. Section: **-Introduction-** We identify LARP4B as a component of the mRNP code that binds to a large but distinct set of cellular mRNAs by contacting an AU-rich sequence element in their 3′ UTRs. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC4478348/]</pre><hr/><h3>Gene Function under condition</h3><p><strong>Search Query:</strong> LARP4B gene function Liver metabolism</p><h4>GPT Evaluated Evidence for Gene Function under condition</h4><pre>1. Section: **-Abstract-** "We aimed to explore the role of LARP4B in the diagnosis and prognosis of liver cancer." [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC6854232/]
+
+2. Section: **-Abstract-** "LARP4B mRNA was highly expressed in liver cancer tissues and was correlated with survival status." [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC6854232/]
+
+3. Section: **-Abstract-** "Survival analysis showed that liver cancer patients with high LARP4B expression had shorter overall/relapse-free survival." [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC6854232/]
+
+4. Section: **-Abstract-** "The univariate/multivariate Cox regression model indicated that high LARP4B expression may be an independent risk factor for the prognosis of liver cancer patients." [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC6854232/]
+
+5. Section: **-Discussion-** "Our results suggest that LARP4B has strong potential as a marker in the clinical detection of liver cancer patients." [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC6854232/]</pre><hr/><h3>Subcellular Localization</h3><p><strong>Search Query:</strong> LARP4B subcellular localization</p><h4>GPT Evaluated Evidence for Subcellular Localization</h4><pre>1. Section: **Introduction** LARP4A and LARP4B have been described as predominantly cytoplasmic proteins that share overall domain organization and display 74% sequence identity in their La-module and ∼40% throughout. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC10963253/]
+
+2. Section: **Results** Interestingly, nuclear staining for both LARP4A and LARP4B was evident in subpopulations of transformed osteoblasts and tumor stromal cells in murine primary osteosarcoma and lung metastases (Figures 1B(iii,vi) and 1D(iii,vi)), as well as in human transformed osteoblasts (Figures 2C(ii,iv)), and notably only LARP4B demonstrated a potential for nuclear localization in prostate cancer epithelial cells (Figures 2D(iv)). [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC10963253/]
+
+3. Section: **Results** Immunofluorescence and confocal microscopy analyses corroborated these findings, demonstrating strong LARP4A and LARP4B expression within nuclear compartments both visually and following co-localization analyses with DAPI (Figure S7), as well as their expression alongside the mitochondrial marker, TOM20 (Figures 7B and 7C). [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC10963253/]
+
+4. Section: **Discussion** Whereas LARP4A was found to shuttle with PABPC1 to the nuclei during accelerated mRNA decay, this is the first evidence of a nuclear localization for LARP4B. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC10963253/]
+
+5. Section: **Discussion** Subcellular localization of LARP4A and LARP4B in the nucleus and mitochondria were unveiled in both cancer cell lines and primary human tumor tissue, however, the functional significance of such localization was not explored. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC10963253/]</pre><hr/></div></div><br/><h2>Knowledge Graph Construction:</h2><br/><div class="fact-check-table-container"><div class="table-container"><h3>Nodes</h3><table id="kg-nodes"><thead><tr><th>Node_ID</th><th>Node_Name</th><th>Definition</th></tr></thead><tbody><tr><td>Node_1</td><td>PRKAG2-AS1</td><td>Node of gene of interest</td></tr><tr><td>Node_2</td><td>LARP4B</td><td>Node of related gene</td></tr><tr><td>Node_3</td><td>PRKAG2-AS1_GF</td><td>Gene-function node</td></tr><tr><td>Node_4</td><td>PRKAG2-AS1_SL</td><td>Sub-cellular localisation node</td></tr><tr><td>Node_5</td><td>PRKAG2-AS1_BD</td><td>Binding-data node</td></tr><tr><td>Node_6</td><td>LARP4B_GF</td><td>Gene-function node</td></tr><tr><td>Node_7</td><td>LARP4B_SL</td><td>Sub-cellular localisation node</td></tr><tr><td>Node_8</td><td>LARP4B_BD</td><td>Binding-data node</td></tr></tbody></table></div><div class="table-container"><h3>Edges</h3><table id="kg-edges"><thead><tr><th>Edge_ID</th><th>Connection</th><th>Node_in_Edge</th><th>Edge_Type</th><th>Explanation</th></tr></thead><tbody><tr><td>Edge_1</td><td>Node_1-Node_3</td><td>PRKAG2-AS1-PRKAG2-AS1_GF</td><td>Fact</td><td>PRKAG2-AS1 is a long non-coding RNA embedded in the PRKAG2 promoter that modulates PRKAG2 expression in cis; knockdown and overexpression in the nucleus alter PRKAG2 transcription, and promoter binding assays confirm direct control of PRKAG2 transcription. Further research could explore additional interacting partners and regulatory contexts.</td></tr>
+<tr><td>Edge_2</td><td>Node_1-Node_4</td><td>PRKAG2-AS1-PRKAG2-AS1_SL</td><td>Fact</td><td>PRKAG2-AS1 is detected in both nuclear and cytosolic fractions by fractionation and fluorescence in situ hybridization, with predominant nuclear localization in multiple cell types yet notable cytoplasmic expression in HCCLM3 and PLC5 liver cancer cells; additional cell-type and condition-specific studies would clarify localization dynamics.</td></tr>
+<tr><td>Edge_3</td><td>Node_1-Node_5</td><td>PRKAG2-AS1-PRKAG2-AS1_BD</td><td>Fact</td><td>PAR-CLIP data reveal a binding interaction between PRKAG2-AS1 (NCBI:100505483) and the RNA-binding protein LARP4B (NCBI:23185) with an RNAInter score of 0.3047, suggesting a potential regulatory complex; further mapping of binding domains and functional assays would elucidate the mechanism.</td></tr>
+<tr><td>Edge_4</td><td>Node_2-Node_6</td><td>LARP4B-LARP4B_GF</td><td>Fact</td><td>LARP4B is an evolutionarily conserved La-related protein containing a La-module for direct RNA binding, acting as a component of the mRNP code to bind AU-rich elements in 3′ UTRs, enhancing mRNA stability and stimulating translation; it also interacts with PABPC1 and ribosomal RACK1, and shows potential as a liver cancer prognostic marker. Further functional studies could uncover additional pathways.</td></tr>
+<tr><td>Edge_5</td><td>Node_2-Node_7</td><td>LARP4B-LARP4B_SL</td><td>Fact</td><td>LARP4B is predominantly cytoplasmic—consistent with its association with PABPC1 and ribosomal subunits—yet immunofluorescence and confocal microscopy reveal nuclear and mitochondrial localization in transformed osteoblasts, tumor stromal cells, and prostate cancer epithelial cells; precise subcellular mapping and functional significance warrant further investigation.</td></tr>
+<tr><td>Edge_6</td><td>Node_2-Node_8</td><td>LARP4B-LARP4B_BD</td><td>Fact</td><td>PAR-CLIP evidence indicates that PRKAG2-AS1 binds LARP4B (RNAInter score 0.3047), implicating LARP4B in lncRNA-mediated regulatory complexes; further studies should probe the interaction interfaces, transcript targets, and downstream functional outcomes.</td></tr><tr><td>Edge_7</td><td>Node_3-Node_6</td><td>PRKAG2-AS1_GF-LARP4B_GF</td><td>Weak Relation</td><td>PRKAG2-AS1 modulates AMPK subunit PRKAG2 expression affecting energy homeostasis, while LARP4B regulates mRNA stability and translation via AU-rich element binding. Although no direct regulatory axis has been described, their intersecting roles in post-transcriptional control and metabolism suggest potential interplay; future studies could test if PRKAG2-AS1 influences mRNAs targeted by LARP4B or modulates LARP4B expression for coordinated metabolic regulation.</td></tr>
+<tr><td>Edge_8</td><td>Node_4-Node_7</td><td>PRKAG2-AS1_SL-LARP4B_SL</td><td>Weak Relation</td><td>PRKAG2-AS1 is found in both nucleus and cytosol, while LARP4B is predominantly cytoplasmic with documented nuclear and mitochondrial pools. This compartmental overlap provides opportunities for interaction, yet direct co-localization evidence is lacking; advanced imaging and fractionation in relevant cell types would clarify their spatial proximity and functional interplay.</td></tr>
+<tr><td>Edge_9</td><td>Node_5-Node_8</td><td>PRKAG2-AS1_BD-LARP4B_BD</td><td>Weak Relation</td><td>PAR-CLIP data demonstrate a direct binding event between PRKAG2-AS1 and LARP4B, indicating a physical interaction within RNA-protein complexes. However, this has not been confirmed in liver or metabolic contexts; targeted CLIP-seq or RIP assays in hepatic models would validate context-specific relevance and identify shared transcript targets.</td></tr>
+<tr><td>Edge_10</td><td>Node_1-Node_2</td><td>PRKAG2-AS1-LARP4B</td><td>Weak Relation</td><td>Combining gene function, localization, and binding data reveals a suggestive link: PRKAG2-AS1 influences metabolic gene expression and directly interacts with LARP4B in overlapping cellular compartments. While multi-context strong evidence is absent, these insights point to a potential regulatory module; in vivo perturbation studies, spatial transcriptomics, and metabolic assays could decisively establish their functional connection.</td></tr></tbody></table></div></div></div><hr/><div class="fact-check-subtask" id="gene_4" style="border:1px solid #ccc; padding:10px; margin-bottom:10px;        word-wrap:break-word; overflow-wrap:break-word;"><br/><h3>RBFOX2</h3><br/><strong>Related Information from Databases and Data Analysis:</strong><br/><div class="fact-check-table-container"><table border="1" style="border-collapse:collapse;">
+<thead><tr><th>LncRNA Name</th><th>LncRNA ID</th><th>LncRNA species</th><th>RBP Name</th><th>RBP ID</th><th>RBP Species</th><th>RNAInter Score</th><th>Source INFO</th></tr></thead>
+<tbody>
+<tr><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">NCBI:100505483</div></td><td><div class="cell-content">Homo sapiens</div></td><td><div class="cell-content">RBFOX2</div></td><td><div class="cell-content">NCBI:23543</div></td><td><div class="cell-content">Homo sapiens</div></td><td><div class="cell-content">0.2096</div></td><td><div class="cell-content">eCLIP</div></td></tr>
+</tbody>
+</table>
+</div><br/><h2>Detailed Google Search Results:</h2><br/><div class="fact-check-table-container"><div><h3>General Information</h3><p><strong>Search Query:</strong> RBFOX2 gene function</p><h4>GPT Evaluated Evidence for General Information</h4><pre>1. Section: -Abstract- RBFOX2 protein controls a post-transcriptional program required for proper brain development. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC3305983/]
+
+2. Section: -Abstract- RBFOX2 is subsequently required with RBFOX1 to maintain mature neuronal physiology, specifically Purkinje cell pacemaking, through their shared control of sodium channel transcript splicing. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC3305983/]
+
+3. Section: -Abstract- Genome-wide analysis of RBFOX2 −/− brain RNA identifies numerous splicing changes altering proteins important both for brain development and mature neuronal function. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC3305983/]
+
+4. Section: -Introduction- RBFOX2 has a well-characterized role in alternative splicing (AS) regulation of pre-mRNAs that can affect gene expression and function. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC8600936/]
+
+5. Section: -Introduction- RBFOX2 controls AS by binding to a highly conserved motif, (U)GCAUG, in intronic and/or exonic regions of pre-mRNAs and regulates AS in a large complex with other splicing regulators. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC8600936/]</pre><hr/><h3>Gene Function under condition</h3><p><strong>Search Query:</strong> RBFOX2 gene function Liver metabolism</p><h4>GPT Evaluated Evidence for Gene Function under condition</h4><pre>1. Section: Abstract - Here, we identify a key role for the splicing factor RNA-binding Fox protein 2 (RBFOX2) in maintaining cholesterol homeostasis in a lipogenic environment in the liver. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC9771820/]
+2. Section: Abstract - RBFOX2 function is decreased in the liver in diet-induced obesity, causing a Scarb1 isoform switch and alteration of hepatocyte lipid homeostasis. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC9771820/]
+3. Section: Results - Gene ontology analysis showed that RBFOX2 cross-linked clusters are highly enriched in transcripts encoding for proteins involved in phosphatidylcholine-sterol-O-acyltransferase activity, lipoprotein particle receptor binding, apolipoprotein receptor binding, and low-density lipoprotein (LDL) particle receptor binding, suggesting a role for RBFOX2 in controlling lipid metabolism. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC9771820/]
+4. Section: Results - Thus, RBFOX2 directly regulates the alternative splicing of a network of genes involved in lipid homeostasis in the liver. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC9771820/]
+5. Section: Discussion - We have found that Rbfox2 is mainly expressed in hepatocytes in the liver, and under a lipogenic diet, ablation of Rbfox2 gene in hepatocytes leads to a cholesterol decrease in the blood and an increase in intrahepatic content of cholesterol, bile acids, and other lipids, uncovering a role for RBFOX2 in controlling lipid distribution. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC9771820/]</pre><hr/><h3>Subcellular Localization</h3><p><strong>Search Query:</strong> RBFOX2 subcellular localization</p><h4>GPT Evaluated Evidence for Subcellular Localization</h4><pre>1. Section: -Abstract- In this study, we confirmed that Rbfox2, which is present in the nucleus as a splicing regulator, localizes to the cytoplasm of human colon cancer tissues and that induction of Rbfox2 dissociation from stress granules (SGs) by resveratrol treatment inhibits cancer progression. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC6486603/]
+
+2. Section: -Abstract- Here, we show that Rbfox2 is a novel constituent of cytoplasmic stress granules, the translational silencing machinery assembled in response to cellular stress. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC5593835/]
+
+3. Section: -Results- Subcellular distribution of Rbfox2 protein is altered in HLHS patient right ventricles; Rbfox2 was predominantly cytoplasmic in punctate bodies with barely detectable levels in the nucleus of cardiomyocytes in HLHS patient RVs. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC4971515/]
+
+4. Section: -Discussion- In this study, we provide comprehensive analysis of cytoplasmic Rbfox2-associated RNAs that are generated under oxidative stress. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC5593835/]
+
+5. Section: -Discussion- Here, we showed that endogenous Rbfox2 isoforms, which are predominantly localized in nuclei, are localized in SGs in the cytoplasm under stress conditions. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC6486603/]</pre><hr/></div></div><br/><h2>Knowledge Graph Construction:</h2><br/><div class="fact-check-table-container"><div class="table-container"><h3>Nodes</h3><table id="kg-nodes"><thead><tr><th>Node_ID</th><th>Node_Name</th><th>Definition</th></tr></thead><tbody><tr><td>Node_1</td><td>PRKAG2-AS1</td><td>Node of gene of interest</td></tr><tr><td>Node_2</td><td>RBFOX2</td><td>Node of related gene</td></tr><tr><td>Node_3</td><td>PRKAG2-AS1_GF</td><td>Gene-function node</td></tr><tr><td>Node_4</td><td>PRKAG2-AS1_SL</td><td>Sub-cellular localisation node</td></tr><tr><td>Node_5</td><td>PRKAG2-AS1_BD</td><td>Binding-data node</td></tr><tr><td>Node_6</td><td>RBFOX2_GF</td><td>Gene-function node</td></tr><tr><td>Node_7</td><td>RBFOX2_SL</td><td>Sub-cellular localisation node</td></tr><tr><td>Node_8</td><td>RBFOX2_BD</td><td>Binding-data node</td></tr></tbody></table></div><div class="table-container"><h3>Edges</h3><table id="kg-edges"><thead><tr><th>Edge_ID</th><th>Connection</th><th>Node_in_Edge</th><th>Edge_Type</th><th>Explanation</th></tr></thead><tbody><tr><td>Edge_1</td><td>Node_1-Node_3</td><td>PRKAG2-AS1-PRKAG2-AS1_GF</td><td>Fact</td><td>PRKAG2-AS1 is a long non-coding RNA located in the promoter region of PRKAG2; knockdown and overexpression studies show it directly binds the PRKAG2 promoter and modulates PRKAG2 transcription in cis, indicating a cis-regulatory role in gene expression control (PMCID:PMC10950609).</td></tr>
+<tr><td>Edge_2</td><td>Node_1-Node_4</td><td>PRKAG2-AS1-PRKAG2-AS1_SL</td><td>Fact</td><td>Subcellular fractionation and FISH analyses reveal PRKAG2-AS1 is predominantly nuclear, though cytoplasmic expression is reported in HCC cells; this dual pattern suggests context-dependent localization and calls for further cellular and tissue-specific studies for confirmation (PMCID:PMC10950609;PMC8076551).</td></tr>
+<tr><td>Edge_3</td><td>Node_1-Node_5</td><td>PRKAG2-AS1-PRKAG2-AS1_BD</td><td>Fact</td><td>eCLIP data indicate a binding event between PRKAG2-AS1 and RBFOX2 (score 0.2096), suggesting a potential RBP–lncRNA interaction in human cells; further mapping of binding sites and functional contexts would clarify interaction mechanisms.</td></tr>
+<tr><td>Edge_4</td><td>Node_2-Node_6</td><td>RBFOX2-RBFOX2_GF</td><td>Fact</td><td>RBFOX2 is an RNA-binding protein that regulates alternative splicing by binding the UGCAUG motif in pre-mRNAs, controlling post-transcriptional programs essential for brain development, Purkinje cell pacemaking, and neuronal physiology, and modulates lipid homeostasis in the liver by orchestrating splicing of genes involved in cholesterol distribution and lipid metabolism (PMCID:PMC3305983;PMC9771820).</td></tr>
+<tr><td>Edge_5</td><td>Node_2-Node_7</td><td>RBFOX2-RBFOX2_SL</td><td>Fact</td><td>RBFOX2 is predominantly nuclear as a splicing regulator but is also found in cytoplasmic stress granules under cellular stress and in certain disease contexts; these dynamic localizations suggest functions in both nuclear splicing complexes and cytoplasmic RNA silencing, warranting precise localization studies across cell types and conditions (PMCID:PMC6486603;PMC5593835;PMC4971515).</td></tr>
+<tr><td>Edge_6</td><td>Node_2-Node_8</td><td>RBFOX2-RBFOX2_BD</td><td>Fact</td><td>eCLIP experiments demonstrate cross-linking between RBFOX2 and PRKAG2-AS1, indicating direct binding in human cells; further experimental validation such as CLIP-seq in specific tissues and mutational analyses could elucidate binding specificity and regulatory consequences.</td></tr><tr><td>Edge_7</td><td>Node_3-Node_6</td><td>PRKAG2-AS1_GF-RBFOX2_GF</td><td>Weak Relation</td><td>Both PRKAG2-AS1 and RBFOX2 influence lipid and energy metabolism—PRKAG2-AS1 by modulating AMPK activity via PRKAG2 transcription and RBFOX2 by controlling splicing of lipid homeostasis genes. Although a direct regulatory axis has not been demonstrated, their convergence on metabolic pathways suggests a potential functional interplay. Future studies could test whether PRKAG2-AS1 impacts RBFOX2-mediated splicing or whether dual perturbation alters metabolic phenotypes.</td></tr>
+<tr><td>Edge_8</td><td>Node_4-Node_7</td><td>PRKAG2-AS1_SL-RBFOX2_SL</td><td>Strong Relation</td><td>PRKAG2-AS1 is predominantly nuclear (with context-dependent cytoplasmic pools) and RBFOX2 resides in the nucleus as a splicing regulator. This shared subcellular localization supports co-localization in nuclear compartments. Targeted imaging, such as super-resolution FISH combined with immunofluorescence, would clarify co-localization at specific nuclear sites and examine potential interactions under stress conditions.</td></tr>
+<tr><td>Edge_9</td><td>Node_5-Node_8</td><td>PRKAG2-AS1_BD-RBFOX2_BD</td><td>Strong Relation</td><td>eCLIP data demonstrate direct cross-linking between PRKAG2-AS1 and RBFOX2 in human cells, indicating a binding event. While tissue context is not fully resolved, this direct interaction merits validation by CLIP-seq in hepatocytes and mutational scanning of binding motifs to map interaction sites and assess functional consequences in liver metabolism.</td></tr>
+<tr><td>Edge_10</td><td>Node_1-Node_2</td><td>PRKAG2-AS1-RBFOX2</td><td>Strong Relation</td><td>Integrating gene function overlap in metabolic regulation, strong nuclear co-localization and direct eCLIP-supported binding yields a coherent picture of a functional axis. To confirm this connection, combined PRKAG2-AS1 knockdown and RBFOX2 splicing assays in liver models could assess coordinated effects on metabolic gene expression and cellular energy homeostasis.</td></tr></tbody></table></div></div></div><hr/><div class="fact-check-subtask" id="gene_5" style="border:1px solid #ccc; padding:10px; margin-bottom:10px;        word-wrap:break-word; overflow-wrap:break-word;"><br/><h3>SRSF7</h3><br/><strong>Related Information from Databases and Data Analysis:</strong><br/><div class="fact-check-table-container"><table border="1" style="border-collapse:collapse;">
+<thead><tr><th>RBP Name</th><th>lncRNA ID</th><th>LncRNA Name</th><th>geneType</th><th>totalClipExpNum</th><th>totalClipSiteNum</th><th>chromosome</th><th>broadStart</th><th>broadEnd</th><th>strand</th><th>cellline/tissue</th></tr></thead>
+<tbody>
+<tr><td><div class="cell-content">SRSF7</div></td><td><div class="cell-content">ENSG00000239911</div></td><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">lncRNA</div></td><td><div class="cell-content">1</div></td><td><div class="cell-content">1</div></td><td><div class="cell-content">chr7</div></td><td><div class="cell-content">151879171</div></td><td><div class="cell-content">151879210</div></td><td><div class="cell-content">+</div></td><td><div class="cell-content">HeLa</div></td></tr>
+</tbody>
+</table>
+<table border="1" style="border-collapse:collapse;">
+<thead><tr><th>LncRNA Name</th><th>LncRNA ID</th><th>LncRNA species</th><th>RBP Name</th><th>RBP ID</th><th>RBP Species</th><th>RNAInter Score</th><th>Source INFO</th></tr></thead>
+<tbody>
+<tr><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">NCBI:100505483</div></td><td><div class="cell-content">Homo sapiens</div></td><td><div class="cell-content">SRSF7</div></td><td><div class="cell-content">NCBI:6432</div></td><td><div class="cell-content">Homo sapiens</div></td><td><div class="cell-content">0.2571</div></td><td><div class="cell-content">PAR-CLIP</div></td></tr>
+</tbody>
+</table>
+</div><br/><h2>Detailed Google Search Results:</h2><br/><div class="fact-check-table-container"><div><h3>General Information</h3><p><strong>Search Query:</strong> SRSF7 gene function</p><h4>GPT Evaluated Evidence for General Information</h4><pre>1. Section: Introduction - The Srsf7 splicing factor belongs to the SR protein family, which is encoded by nine genes in humans: SRSF1 (chr17), SRSF2 (chr17), SRSF3 (chr6), SRSF4 (chr1), SRSF5 (chr14), SRSF6 (chr20), SRSF7 (chr2), SRSF9 (chr12), SRSF11 (chr1). [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC7063262/]
+
+2. Section: Introduction - Srsf7 transports herpes simplex virus 1 mRNAs and is involved in processing HIV-1 mRNA, but the biological roles of Srsf7 remain largely unknown. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC7063262/]
+
+3. Section: Abstract - SRSF7 is an essential RNA-binding protein whose misexpression promotes cancer. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC7096898/]
+
+4. Section: Abstract - SRSF7 binding to its premessenger RNA promotes inclusion of a poison cassette exon and transcript degradation via nonsense-mediated decay (NMD). [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC7096898/]
+
+5. Section: Abstract - Serine/arginine-rich splicing factor 7 (SRSF7), a known splicing factor, has been revealed to play oncogenic roles in multiple cancers. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC10787126/]</pre><hr/><h3>Gene Function under condition</h3><p><strong>Search Query:</strong> SRSF7 gene function Liver metabolism</p><h4>GPT Evaluated Evidence for Gene Function under condition</h4><pre>1. Section: -Abstract- Knockdown of SRSF7 in HepG2 cells resulted in inhibited proliferation, clonogenicity, and invasion, while apoptosis was enhanced. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC11119032/]
+2. Section: -Abstract- Furthermore, SRSF7 downregulation increased the pyruvate kinase muscle 1 (PKM1)/PKM2 ratio. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC11119032/]
+3. Section: -Abstract- The knockdown of SRSF7 impairs aerobic glycolysis and growth in HepG2 cells by downregulating PKM2 expression. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC11119032/]
+4. Section: -Introduction- In this study, we demonstrate for the first time that suppression of SRSF7 leads to a decrease in aerobic glycolysis and growth capacity in HepG2 cells. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC11119032/]
+5. Section: -Results- Our results showed that SRSF7 downregulation upregulated the expression of PKM1 and inhibited PKM2, indicating that SRSF7 was involved in the reprogramming of glucose metabolism in HepG2 cells through the regulation of PKM alternative splicing. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC11119032/]</pre><hr/><h3>Subcellular Localization</h3><p><strong>Search Query:</strong> SRSF7 subcellular localization</p><h4>GPT Evaluated Evidence for Subcellular Localization</h4><pre>1. Section: -Results- Our immunofluorescence data indicated that SRSF7 predominantly localized to the nucleus of lung fibroblasts after treatment with TGF-β1, suggesting that its role in regulating biological processes is likely mediated through the modulation of alternative splicing (Fig). [Source: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC12254822/]
+
+2. Section: -Results- Within the nucleus, SRSF3 and SRSF7 were strongly detected in the chromatin fraction from P19 cells, consistent with high co-transcriptional activity for both SR proteins (13, 16–17). [Source: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5737842/]
+
+3. Section: -Results- Low but significant levels of both SRSF3 and SRSF7 were detected in the cytoplasmic fraction, in accordance with their ability to efficiently shuttle from the nucleus to the cytoplasm (16, 21, 23). [Source: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5737842/]
+
+4. Section: -Discussion- Taken together, Fr-iCLIP has revealed the nuclear export of a subset of intron-retained targets of SRSF3 and SRSF7. [Source: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5737842/]
+
+5. Section: -Results- Open in a new tab Recovery curves of FRAP measurements performed on the splicing factors U1-70K, SRSF4, SRSF6, SRSF5, SRSF2, PRP8, SRSF7 and U2AF65 taken in the nucleoplasm (green), in nuclear speckles (blue) and at the transcription site (cyan). [Source: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6901260/]</pre><hr/></div></div><br/><h2>Knowledge Graph Construction:</h2><br/><div class="fact-check-table-container"><div class="table-container"><h3>Nodes</h3><table id="kg-nodes"><thead><tr><th>Node_ID</th><th>Node_Name</th><th>Definition</th></tr></thead><tbody><tr><td>Node_1</td><td>PRKAG2-AS1</td><td>Node of gene of interest</td></tr><tr><td>Node_2</td><td>SRSF7</td><td>Node of related gene</td></tr><tr><td>Node_3</td><td>PRKAG2-AS1_GF</td><td>Gene-function node</td></tr><tr><td>Node_4</td><td>PRKAG2-AS1_SL</td><td>Sub-cellular localisation node</td></tr><tr><td>Node_5</td><td>PRKAG2-AS1_BD</td><td>Binding-data node</td></tr><tr><td>Node_6</td><td>SRSF7_GF</td><td>Gene-function node</td></tr><tr><td>Node_7</td><td>SRSF7_SL</td><td>Sub-cellular localisation node</td></tr><tr><td>Node_8</td><td>SRSF7_BD</td><td>Binding-data node</td></tr></tbody></table></div><div class="table-container"><h3>Edges</h3><table id="kg-edges"><thead><tr><th>Edge_ID</th><th>Connection</th><th>Node_in_Edge</th><th>Edge_Type</th><th>Explanation</th></tr></thead><tbody><tr><td>Edge_1</td><td>Node_1-Node_3</td><td>PRKAG2-AS1-PRKAG2-AS1_GF</td><td>Fact</td><td>PRKAG2-AS1 is a long non-coding RNA located within the PRKAG2 promoter; knockdown and overexpression in the nucleus alter PRKAG2 expression in cis, and direct promoter binding controls PRKAG2 transcription. Further work could explore its broader regulatory network and mechanistic domains.</td></tr>
+<tr><td>Edge_2</td><td>Node_1-Node_4</td><td>PRKAG2-AS1-PRKAG2-AS1_SL</td><td>Fact</td><td>PRKAG2-AS1 is predominantly nuclear (nuclear/cytoplasmic fractionation, FISH, RNA ISH) with additional cytoplasmic expression in HCC cells; high-resolution localization and dynamic studies are needed to confirm compartment-specific functions.</td></tr>
+<tr><td>Edge_3</td><td>Node_1-Node_5</td><td>PRKAG2-AS1-PRKAG2-AS1_BD</td><td>Fact</td><td>PAR-CLIP in HeLa cells identified one SRSF7 binding event on PRKAG2-AS1 at chr7:151879171-151879210 (totalClipSiteNum=1); expanded CLIP-seq in diverse contexts could uncover additional binding sites and regulatory mechanisms.</td></tr>
+<tr><td>Edge_4</td><td>Node_2-Node_6</td><td>SRSF7-SRSF7_GF</td><td>Fact</td><td>SRSF7 is a serine/arginine-rich splicing factor of the SR protein family, essential for alternative splicing (poison exon inclusion, NMD), viral mRNA transport (HSV-1, HIV-1), oncogenic roles in multiple cancers, and regulation of glucose metabolism via PKM isoform splicing. Further in vivo studies may reveal additional physiological and pathological functions.</td></tr>
+<tr><td>Edge_5</td><td>Node_2-Node_7</td><td>SRSF7-SRSF7_SL</td><td>Fact</td><td>SRSF7 localizes predominantly to the nucleus—enriched in chromatin fractions and nuclear speckles—with low but significant cytoplasmic presence and shuttling capabilities; more precise subnuclear mapping (e.g., super-resolution imaging) could refine localization insights.</td></tr>
+<tr><td>Edge_6</td><td>Node_2-Node_8</td><td>SRSF7-SRSF7_BD</td><td>Fact</td><td>PAR-CLIP and RNAInter data demonstrate SRSF7 binds PRKAG2-AS1 (RNAInter score 0.2571) with one validated clip site; broader CLIP profiling and motif analysis across cell types would strengthen understanding of SRSF7–PRKAG2-AS1 interactions.</td></tr><tr><td>Edge_7</td><td>Node_3-Node_6</td><td>PRKAG2-AS1_GF-SRSF7_GF</td><td>Weak Relation</td><td>Both PRKAG2-AS1 and SRSF7 influence glucose and energy metabolism—PRKAG2-AS1 regulates PRKAG2 expression in cis and SRSF7 controls PKM isoform splicing—indicating functional overlap in metabolic pathways. While a direct regulatory axis remains unproven, co‐regulation of metabolic genes suggests potential cross‐talk. Future work could map shared targets and test whether SRSF7 modulates PRKAG2-AS1–driven metabolic effects.</td></tr>
+<tr><td>Edge_8</td><td>Node_4-Node_7</td><td>PRKAG2-AS1_SL-SRSF7_SL</td><td>Strong Relation</td><td>Both molecules localize predominantly to the nucleus—PRKAG2-AS1 shows nuclear enrichment with some cytoplasmic fraction in HCC cells, and SRSF7 resides in chromatin and nuclear speckles—supporting spatial overlap conducive to interaction. High‐resolution co‐localization and live‐cell imaging could confirm dynamic association within nuclear compartments.</td></tr>
+<tr><td>Edge_9</td><td>Node_5-Node_8</td><td>PRKAG2-AS1_BD-SRSF7_BD</td><td>Weak Relation</td><td>PAR-CLIP and RNAInter data report SRSF7 binding to PRKAG2-AS1 in HeLa cells, demonstrating at least one validated interaction. Although this binding event is not yet shown in liver or metabolic contexts, it establishes a biochemical link. Further CLIP‐seq in hepatic or metabolic tissues would clarify physiological relevance and tissue specificity.</td></tr>
+<tr><td>Edge_10</td><td>Node_1-Node_2</td><td>PRKAG2-AS1-SRSF7</td><td>Strong Relation</td><td>Combined evidence reveals nuclear co‐localization, shared roles in metabolic regulation, and at least one validated binding event, indicating a cohesive regulatory relationship. While direct mechanistic pathways remain to be detailed, multidimensional data support functional interplay. Future studies should integrate tissue‐specific binding assays, loss‐ and gain‐of‐function in metabolic models, and transcriptome‐wide analyses to elucidate this axis.</td></tr></tbody></table></div></div></div><hr/><div class="fact-check-subtask" id="gene_6" style="border:1px solid #ccc; padding:10px; margin-bottom:10px;        word-wrap:break-word; overflow-wrap:break-word;"><br/><h3>YTHDF2</h3><br/><strong>Related Information from Databases and Data Analysis:</strong><br/><div class="fact-check-table-container"><table border="1" style="border-collapse:collapse;">
+<thead><tr><th>RBP Name</th><th>lncRNA ID</th><th>LncRNA Name</th><th>geneType</th><th>totalClipExpNum</th><th>totalClipSiteNum</th><th>chromosome</th><th>broadStart</th><th>broadEnd</th><th>strand</th><th>cellline/tissue</th></tr></thead>
+<tbody>
+<tr><td><div class="cell-content">YTHDF2</div></td><td><div class="cell-content">ENSG00000239911</div></td><td><div class="cell-content">PRKAG2-AS1</div></td><td><div class="cell-content">lncRNA</div></td><td><div class="cell-content">1</div></td><td><div class="cell-content">1</div></td><td><div class="cell-content">chr7</div></td><td><div class="cell-content">151878640</div></td><td><div class="cell-content">151878679</div></td><td><div class="cell-content">+</div></td><td><div class="cell-content">HEK293T</div></td></tr>
+</tbody>
+</table>
+</div><br/><h2>Detailed Google Search Results:</h2><br/><div class="fact-check-table-container"><div><h3>General Information</h3><p><strong>Search Query:</strong> YTHDF2 gene function</p><h4>GPT Evaluated Evidence for General Information</h4><pre>1. Section: -Abstract- YTHDF2 influences various aspects of RNA metabolism, including mRNA decay and pre-ribosomal RNA (pre-rRNA) processing. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC7885220/]
+2. Section: -Abstract- Human YTH domain family 2 (YTHDF2) selectively recognized m6A-RNAs to regulate degradation. [Source: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7969013/]
+3. Section: -Abstract- YTHDF2 recruits the CCR4–NOT complex through a direct interaction between the YTHDF2 N-terminal region and the SH domain of the CNOT1 subunit, and that this recruitment is essential for the deadenylation of m6A-containing RNAs by CAF1 and CCR4. [Source: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5007331/]
+4. Section: -Abstract- SUMOylation of YTHDF2 significantly increases its binding affinity of m6A-modified mRNAs and subsequently results in deregulated gene expressions which accounts for cancer progression. [Source: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7969013/]
+5. Section: -Abstract- Therefore, we have uncovered the mechanism of YTHDF2-mediated degradation of m6A-containing RNAs in mammalian cells. [Source: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5007331/]</pre><hr/><h3>Gene Function under condition</h3><p><strong>Search Query:</strong> YTHDF2 gene function Liver metabolism</p><h4>GPT Evaluated Evidence for Gene Function under condition</h4><pre>1. Section: -Abstract- YTHDF2 processed the decay of m6A-containing interleukin 11 (IL11) and serpin family E member 2 (SERPINE2) mRNAs, which were responsible for the inflammation-mediated malignancy and disruption of vascular normalization. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC6859620/]  
+
+2. Section: -Abstract- Administration of a HIF-2α antagonist (PT2385) restored YTHDF2-programed epigenetic machinery and repressed liver cancer. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC6859620/]  
+
+3. Section: -Abstract- YTHDF2 induces degradation of transcripts by selectively binding m6A-modified mRNA and recruiting them to mRNA decay sites. [Source: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10756983/]  
+
+4. Section: -Results- In vitro, we found that METTL3 or YTHDF2 knockdown increased both PPaRα mRNA lifetime and expression, resulting in reduced lipid accumulation, revealing that mRNA m6A methylation of PPaRα is a critical regulatory mechanism likely mediated through YTHDF2-mediated mRNA decay. [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC6532766/]  
+
+5. Section: -Results- YTHDF2 functions by recruiting the CCR4–NOT complex through a direct interaction between the YTHDF2 N-terminal region and the SH domain of the CNOT1 subunit, which is essential for the deadenylation of m6A-containing RNAs. [Source: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5007331/]</pre><hr/><h3>Subcellular Localization</h3><p><strong>Search Query:</strong> YTHDF2 subcellular localization</p><h4>GPT Evaluated Evidence for Subcellular Localization</h4><pre>1. Section: Abstract - "Despite its essential roles, the role of YTHDF2 in determining cell fates has not been fully elucidated." [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC8495403/]
+2. Section: Introduction - "Otherwise, under heat shock stress, nucleus-localized YTHDF2 protects the 5’ untranslated region (5’UTR) of stress-induced transcripts from FTO-mediated demethylation, resulting in cap-independent translation initiation." [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC11538425/]
+3. Section: Introduction - "Recently, heat shock stress-induced YTHDF2 migration to the nucleus was reported." [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC8495403/]
+4. Section: Results - "Surprisingly, wild-type and OT-1 CD8 T cells accumulated nuclear YTHDF2 when stimulated with anti-CD3/CD28 antibodies and OVA peptides, respectively, for 12–48 h." [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC11538425/]
+5. Section: Discussion - "Acute activation or rejuvenation signals incite YTHDF2 relocation to the nucleus, albeit temporarily, paving an individual way for its abundant expression in the early phase." [Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC11538425/]</pre><hr/></div></div><br/><h2>Knowledge Graph Construction:</h2><br/><div class="fact-check-table-container"><div class="table-container"><h3>Nodes</h3><table id="kg-nodes"><thead><tr><th>Node_ID</th><th>Node_Name</th><th>Definition</th></tr></thead><tbody><tr><td>Node_1</td><td>PRKAG2-AS1</td><td>Node of gene of interest</td></tr><tr><td>Node_2</td><td>YTHDF2</td><td>Node of related gene</td></tr><tr><td>Node_3</td><td>PRKAG2-AS1_GF</td><td>Gene-function node</td></tr><tr><td>Node_4</td><td>PRKAG2-AS1_SL</td><td>Sub-cellular localisation node</td></tr><tr><td>Node_5</td><td>PRKAG2-AS1_BD</td><td>Binding-data node</td></tr><tr><td>Node_6</td><td>YTHDF2_GF</td><td>Gene-function node</td></tr><tr><td>Node_7</td><td>YTHDF2_SL</td><td>Sub-cellular localisation node</td></tr><tr><td>Node_8</td><td>YTHDF2_BD</td><td>Binding-data node</td></tr></tbody></table></div><div class="table-container"><h3>Edges</h3><table id="kg-edges"><thead><tr><th>Edge_ID</th><th>Connection</th><th>Node_in_Edge</th><th>Edge_Type</th><th>Explanation</th></tr></thead><tbody><tr><td>Edge_1</td><td>Node_1-Node_3</td><td>PRKAG2-AS1-PRKAG2-AS1_GF</td><td>Fact</td><td>PRKAG2-AS1 is a long non-coding RNA located in the promoter region of PRKAG2, directly interacting with its promoter to regulate PRKAG2 transcription in a cis-regulatory manner (knockdown/overexpression and promoter binding assays; PMC10950609). Further research into its wider target gene network and mechanistic details is warranted.</td></tr>
+<tr><td>Edge_2</td><td>Node_1-Node_4</td><td>PRKAG2-AS1-PRKAG2-AS1_SL</td><td>Fact</td><td>PRKAG2-AS1 shows predominant nuclear localization as revealed by nuclear/cytoplasmic fractionation and RNA in situ hybridization, with additional cytoplasmic expression observed in HCC cell lines (PMC10950609; PMC8076551), suggesting dual localization and inviting more precise cell-type-specific studies.</td></tr>
+<tr><td>Edge_3</td><td>Node_1-Node_5</td><td>PRKAG2-AS1-PRKAG2-AS1_BD</td><td>Fact</td><td>Crosslinking immunoprecipitation in HEK293T cells identified a binding event between YTHDF2 and PRKAG2-AS1 (one clip experiment at chr7:151878640–151878679), indicating direct interaction; additional studies could explore binding dynamics under different conditions and map further interaction sites.</td></tr>
+<tr><td>Edge_4</td><td>Node_2-Node_6</td><td>YTHDF2-YTHDF2_GF</td><td>Fact</td><td>YTHDF2 is an m6A reader that selectively recognizes and promotes degradation of m6A-containing RNAs, recruits the CCR4–NOT deadenylase complex via CNOT1 interaction, participates in pre-rRNA processing, and influences inflammation and cancer progression by regulating transcripts such as IL11, SERPINE2, and PPARα; future studies may uncover additional regulatory pathways.</td></tr>
+<tr><td>Edge_5</td><td>Node_2-Node_7</td><td>YTHDF2-YTHDF2_SL</td><td>Fact</td><td>YTHDF2 is primarily cytoplasmic under normal conditions but relocates to the nucleus upon heat shock stress or immune activation, protecting stress-induced transcripts’ 5′ UTR from demethylation, suggesting dynamic subcellular redistribution that could be further quantified in different cell types.</td></tr>
+<tr><td>Edge_6</td><td>Node_2-Node_8</td><td>YTHDF2-YTHDF2_BD</td><td>Fact</td><td>Binding studies in HEK293T cells revealed YTHDF2 association with PRKAG2-AS1 at a specific site (chr7:151878640–151878679), highlighting a potential regulatory interaction; expanding this analysis to diverse cell lines and stimuli may identify additional binding events and functional consequences.</td></tr><tr><td>Edge_7</td><td>Node_3-Node_6</td><td>PRKAG2-AS1_GF-YTHDF2_GF</td><td>Weak Relation</td><td>PRKAG2-AS1 modulates transcription via promoter interactions while YTHDF2 regulates m6A-dependent RNA decay of metabolic transcripts like PPARα. They share themes in post-transcriptional control but lack direct functional linkage. Future studies could test whether PRKAG2-AS1 influences m6A marking on YTHDF2 targets or alters CCR4–NOT recruitment.</td></tr>
+<tr><td>Edge_8</td><td>Node_4-Node_7</td><td>PRKAG2-AS1_SL-YTHDF2_SL</td><td>Weak Relation</td><td>Both molecules localize to nucleus and cytoplasm—PRKAG2-AS1 shows dual localization and YTHDF2 shuttles under stress—suggesting spatial overlap without direct co-localization evidence. High-resolution imaging under various conditions could confirm their compartmental coexistence.</td></tr>
+<tr><td>Edge_9</td><td>Node_5-Node_8</td><td>PRKAG2-AS1_BD-YTHDF2_BD</td><td>Weak Relation</td><td>A CLIP assay in HEK293T cells identified binding between PRKAG2-AS1 and YTHDF2 at chr7:151878640–151878679, indicating direct interaction. Validation in liver or other relevant tissues and mapping additional sites would clarify its physiological relevance.</td></tr>
+<tr><td>Edge_10</td><td>Node_1-Node_2</td><td>PRKAG2-AS1-YTHDF2</td><td>Weak Relation</td><td>Evidence from gene function, localization, and binding suggests a potential interplay—shared roles in RNA regulation, compartmental proximity, and direct RNA–protein contact—but lacks robust confirmation. Integrative experiments in metabolic contexts, stress conditions, and m6A assays could define the biological significance of this axis.</td></tr></tbody></table></div></div></div><hr/></div></div>
+    </div>
+  </div>
+  <footer><p>&copy; 2025 AgentLnc. All Rights Reserved.</p></footer>
+  <script>
+document.addEventListener('DOMContentLoaded', function(){
+  // Drag-to-scroll for all .table-container boxes
+  var boxes = document.querySelectorAll('.table-container');
+  boxes.forEach(function(el){
+    var down = false, sx = 0, sy = 0, sl = 0, st = 0;
+    el.addEventListener('mousedown', function(e){
+      if (e.button !== 0) return;
+      down = true; sx = e.pageX; sy = e.pageY; sl = el.scrollLeft; st = el.scrollTop;
+      el.classList.add('dragging');
+    });
+    window.addEventListener('mousemove', function(e){
+      if (!down) return;
+      el.scrollLeft = sl - (e.pageX - sx);
+      el.scrollTop  = st - (e.pageY - sy);
+    });
+    window.addEventListener('mouseup', function(){
+      down = false; el.classList.remove('dragging');
+    });
+    el.addEventListener('touchstart', function(e){
+      if (!e.touches || !e.touches.length) return;
+      down = true; sx = e.touches[0].clientX; sy = e.touches[0].clientY; sl = el.scrollLeft; st = el.scrollTop;
+    }, { passive: true });
+    el.addEventListener('touchmove', function(e){
+      if (!down || !e.touches || !e.touches.length) return;
+      el.scrollLeft = sl - (e.touches[0].clientX - sx);
+      el.scrollTop  = st - (e.touches[0].clientY - sy);
+    }, { passive: true });
+    el.addEventListener('touchend', function(){ down = false; });
+  });
+
+  // === FACT CHECK FIX ===
+  // Ensure every table inside the Fact Check area is wrapped in .table-container and has .cell-content
+  var scopes = document.querySelectorAll('#factCheck .fact-check-table-container, #factCheck');
+  scopes.forEach(function(scope){
+    var tables = scope.querySelectorAll('table');
+    tables.forEach(function(tbl){
+      var inContainer = tbl.closest('.table-container');
+      if (!inContainer) {
+        var wrapper = document.createElement('div');
+        wrapper.className = 'table-container';
+        tbl.parentNode.insertBefore(wrapper, tbl);
+        wrapper.appendChild(tbl);
+      }
+      // add missing .cell-content wrappers for robustness
+      tbl.querySelectorAll('td').forEach(function(td){
+        if (!td.querySelector('.cell-content')) {
+          var div = document.createElement('div');
+          div.className = 'cell-content';
+          while (td.firstChild) div.appendChild(td.firstChild);
+          td.appendChild(div);
+        }
+      });
+    });
+  });
+
+  // === NPInter width fallback ===
+  (function(){
+    var db = document.getElementById('dbResults');
+    if (!db) return;
+    db.querySelectorAll('h3').forEach(function(h3){
+      if ((h3.textContent || '').trim().toLowerCase() !== 'npinter') return;
+      var container = h3.nextElementSibling;
+      var tbl = container && container.querySelector ? container.querySelector('table') : null;
+      if (!tbl) return;
+      var headers = Array.from(tbl.querySelectorAll('thead th'));
+      var idx = headers.findIndex(function(th){
+        var t = (th.textContent || '').trim().toLowerCase().replace(/[\s_-]+/g,' ');
+        return (t === 'summary' || (t.includes('interaction') && t.includes('summary')));
+      });
+      if (idx >= 0 && !headers[idx].classList.contains('col-npinter-interaction')) {
+        headers[idx].classList.add('col-npinter-interaction');
+        Array.from(tbl.tBodies[0].rows).forEach(function(tr){
+          if (tr.cells[idx]) tr.cells[idx].classList.add('col-npinter-interaction');
+        });
+      }
+    });
+  })();
+});
+</script>
+  <script>
+      function openTab(evt, tabName) {
+        var tabcontents = document.getElementsByClassName("tabcontent");
+        for (var i = 0; i < tabcontents.length; i++) {
+          tabcontents[i].style.display = "none";
+          tabcontents[i].classList.remove("active");
+        }
+        var tablinks = document.getElementsByClassName("tablinks");
+        for (var i = 0; i < tablinks.length; i++) {
+          tablinks[i].classList.remove("active");
+        }
+        document.getElementById(tabName).style.display = "block";
+        document.getElementById(tabName).classList.add("active");
+        if (evt) { evt.currentTarget.classList.add("active"); }
+        if (tabName === 'factCheck') {
+          document.dispatchEvent(new Event('myTabShown'));
+        }
+      }
+
+      function goToFactCheckAndScroll(geneId, button) {
+        var buttons = document.querySelectorAll("#factCheckSidebar .sidebar-button");
+        buttons.forEach(function(btn) { btn.classList.remove("active"); });
+        if (button) { button.classList.add("active"); }
+        var factCheckTab = document.getElementById("factCheckTab");
+        if (factCheckTab) { factCheckTab.click(); } else { openTab(null, 'factCheck'); }
+        setTimeout(function() {
+          var element = document.getElementById(geneId);
+          if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 280);
+      }
+
+      window.onload = function() {
+        var defaultTab = document.getElementById("defaultTab");
+        if (defaultTab) defaultTab.click();
+      };
+    </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.21.1/cytoscape.min.js"></script>
+</body>
+</html>
